@@ -1,6 +1,7 @@
 package org.example.edvo
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import org.example.edvo.core.session.SessionManager
 import org.example.edvo.data.repository.AuthRepositoryImpl
@@ -13,6 +14,7 @@ import org.example.edvo.presentation.note.NoteViewModel
 import org.example.edvo.presentation.settings.ChangePasswordScreen
 import org.example.edvo.presentation.settings.SettingsScreen
 import org.example.edvo.presentation.settings.SettingsViewModel
+import org.example.edvo.theme.EdvoTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 enum class Screen {
@@ -22,14 +24,14 @@ enum class Screen {
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
+    EdvoTheme {
         var currentScreen by remember { mutableStateOf(Screen.AUTH) }
         var selectedNoteId by remember { mutableStateOf<String?>(null) }
         
         val database = DependencyInjection.database
         if (database == null) {
-            androidx.compose.material3.Text("Database not initialized")
-            return@MaterialTheme
+            Text("Database not initialized")
+            return@EdvoTheme
         }
 
         val authRepository = remember { AuthRepositoryImpl(database, DependencyInjection.driverFactory) }
