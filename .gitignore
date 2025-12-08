@@ -55,6 +55,8 @@ Pods/
 *.aab
 *.ap_
 
+edvo-rules.md
+
 # node_modules/
 # package-lock.json
 # yarn.lock
