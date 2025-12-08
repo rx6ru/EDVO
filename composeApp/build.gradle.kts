@@ -58,7 +58,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.atomicfu)
             implementation(compose.materialIconsExtended)
-            // SQLDelight runtime is added automatically by plugin usually, but we need coroutines extensions manually
+            // SQLDelight Coroutines Extension
             implementation(libs.sqldelight.coroutines.extensions)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.filekit.compose)

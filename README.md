@@ -1,48 +1,45 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Desktop (JVM).
+# EDVO - The Vault
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+**EDVO** is a high-security, local-first vault application built with **Kotlin Multiplatform** (Compose Multiplatform). It is designed to provide maximum privacy with an impenetrable UI.
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+## Core Features
 
-### Build and Run Android Application
+*   **Zero-Knowledge Security**: Data is encrypted locally. No cloud sync.
+*   **Neo-Terminal UI**: A distinct, high-contrast aesthetic inspired by retro-futurism (Green/Black).
+*   **Fortified Editor**:
+    *   **SecureTextField**: Prevents keyboard learning, paste attacks, and unauthorized selection.
+    *   **Clipboard & Screenshot Blocking**: Toggleable protections to prevent data leaks.
+    *   **Panic Mode**: Rapid data wipe capabilities.
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+## Tech Stack
 
-### Build and Run Desktop (JVM) Application
+*   **framework**: Kotlin Multiplatform (Android, iOS, Desktop/JVM)
+*   **UI**: Compose Multiplatform with a custom `NeoTheme` design system.
+*   **Architecture**: MVVM with Clean Architecture principles.
+*   **Persistence**: SQLDelight (Local Database).
+*   **Security**: `androidx.security.crypto` (Android) / Common Crypto (iOS).
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
+## Getting Started
 
-### Build and Run iOS Application
+### Prerequisites
+*   Android Studio / IntelliJ IDEA (Latest)
+*   JDK 17+
+*   Xcode (for iOS build)
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+### Build and Run
 
----
+**Android**
+```shell
+./gradlew :composeApp:assembleDebug
+```
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+**Desktop (JVM)**
+```shell
+./gradlew :composeApp:run
+```
+
+**iOS**
+Open `iosApp/iosApp.xcodeproj` in Xcode and run.
+
+## License
+Proprietary. All rights reserved.

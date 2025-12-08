@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.geometry.Rect
+import org.example.edvo.presentation.components.util.EmptyTextToolbar
 
 enum class Screen {
     AUTH, NOTE_LIST, NOTE_DETAIL, SETTINGS, CHANGE_PASSWORD
@@ -127,18 +128,7 @@ fun App() {
     }
 }
 
-object EmptyTextToolbar : TextToolbar {
-    override val status: TextToolbarStatus = TextToolbarStatus.Hidden
-    override fun hide() {}
-    override fun showMenu(
-        rect: Rect,
-        onCopyRequested: (() -> Unit)?,
-        onPasteRequested: (() -> Unit)?,
-        onCutRequested: (() -> Unit)?,
-        onSelectAllRequested: (() -> Unit)?
-    ) {
-    }
-}
+// EmptyTextToolbar moved to org.example.edvo.presentation.components.util
 
 class NoOpClipboardManager : androidx.compose.ui.platform.ClipboardManager {
     override fun getText(): androidx.compose.ui.text.AnnotatedString? = null

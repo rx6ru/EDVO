@@ -228,7 +228,7 @@ fun EmptyVaultView() {
              color = NeoPaletteV2.BorderInactive
          )
          Text(
-             "Add encrypted data.", 
+             "Add your data.", 
              style = NeoTypographyV2.DataMono()
          )
     }

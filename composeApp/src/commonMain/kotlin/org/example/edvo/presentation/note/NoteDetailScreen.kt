@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.example.edvo.presentation.components.SecureTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,7 +78,7 @@ fun NoteDetailScreen(
             }
         } else {
             Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
-                OutlinedTextField(
+                SecureTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Title (Visible in List)") },
@@ -85,7 +86,7 @@ fun NoteDetailScreen(
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
+                SecureTextField(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text("Secure Content") },

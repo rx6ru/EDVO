@@ -53,10 +53,7 @@ fun NeoCard(
     
     val haptic = LocalHapticFeedback.current
 
-    // Ticket Shape: Cut corners on top-left and bottom-right? Or just Rounded.
-    // User requested "Ticket" shape cards for Vault List.
-    // Let's use a subtle CutCorner for "Terminal" vibe.
-    // Reuse this shape for Swipe Backgrounds.
+    // Card shape: subtle CutCorner for "Terminal" aesthetic.
     val shape = NeoCardShape
 
     Surface(
@@ -108,7 +105,7 @@ fun SmartButton(
     val backgroundColor = if (isDestructive) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.AccentWhite
     val contentColor = if (isDestructive) NeoPaletteV2.AccentWhite else NeoPaletteV2.SurfacePrimary
 
-    // Terminal style: Sharp corners or minimal rounding
+    // Terminal style sharp corners
     val shape = RoundedCornerShape(4.dp) 
 
     Box(
@@ -181,7 +178,8 @@ fun NeoInput(
                         .background(NeoPaletteV2.SurfaceSecondary, RoundedCornerShape(4.dp))
                         .border(
                              width = 1.dp,
-                             // "Light Grey" border for search visibility
+                             // Focused: SignalGreen
+                             // Unfocused: LightGray
                              color = if (isFocused) NeoPaletteV2.Functional.SignalGreen else Color.LightGray.copy(alpha = 0.5f),
                              shape = RoundedCornerShape(4.dp)
                         )
