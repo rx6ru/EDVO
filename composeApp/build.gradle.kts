@@ -88,8 +88,8 @@ android {
         applicationId = "org.example.edvo"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     // --- NEW: Signing Configuration ---
@@ -118,8 +118,7 @@ android {
 
     buildTypes {
         getByName("release") {
-            // --- NEW: Security & Optimization ---
-            isMinifyEnabled = true  // Obfuscate code (Security)
+            isMinifyEnabled = true  // Obfuscate code
             isShrinkResources = true // Remove unused files
             
             proguardFiles(
@@ -136,6 +135,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    // Custom APK Renaming logic
+    // Usage: ./gradlew assembleRelease -PapkName="MyCustomApp.apk"
+    applicationVariants.all {
+        outputs.all {
+            val output = this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            if (project.hasProperty("apkName")) {
+                output?.outputFileName = project.property("apkName") as String
+            }
+        }
+    }
 }
 
 dependencies {
@@ -149,7 +159,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "org.example.edvo"
-            packageVersion = "1.2.0" // DMG requires Major version > 0 (0.2.0 is invalid)
+            packageVersion = "1.3.0" // DMG requires Major version > 0 (0.3.0 is invalid)
         }
     }
 }

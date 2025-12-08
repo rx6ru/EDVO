@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -37,10 +38,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 
 val NeoCardShape = CutCornerShape(topEnd = 12.dp, bottomStart = 12.dp)
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun NeoCard(
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -63,20 +67,26 @@ fun NeoCard(
                 scaleY = scale
             }
             .then(
-                if (onClick != null) {
-                    Modifier.clickable(
+                if (onClick != null || onLongClick != null) {
+                    Modifier.combinedClickable(
                         interactionSource = interactionSource,
                         indication = null,
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress) // Light placeholder
-                            onClick()
+                            onClick?.invoke()
+                        },
+                        onLongClick = {
+                            if (onLongClick != null) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onLongClick()
+                            }
                         }
                     )
                 } else Modifier
             ),
         color = NeoPaletteV2.SurfacePrimary,
         shape = shape,
-        border = BorderStroke(1.dp, Color.White),
+        border = if (isSelected) BorderStroke(2.dp, NeoPaletteV2.Functional.SignalRed) else BorderStroke(1.dp, Color.White),
     ) {
         Box(modifier = Modifier.padding(16.dp)) {
             content()

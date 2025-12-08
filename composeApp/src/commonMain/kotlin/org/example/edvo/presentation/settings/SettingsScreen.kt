@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.border
 import org.example.edvo.presentation.components.EdvoButton
 import org.example.edvo.presentation.components.EdvoButtonType
 import org.example.edvo.presentation.components.EdvoCard
@@ -20,6 +21,7 @@ import org.example.edvo.theme.EdvoColor
 import org.example.edvo.presentation.designsystem.NeoSlideToAct
 import org.example.edvo.presentation.designsystem.NeoSuccessOverlay
 import org.example.edvo.presentation.designsystem.NeoPaletteV2
+import org.example.edvo.presentation.components.util.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +33,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     state: SettingsState
 ) {
+    BackHandler(enabled = true) { onBack() }
+
     var showWipeConfirmDialog by remember { mutableStateOf(false) }
     var showBackupOptionsDialog by remember { mutableStateOf(false) }
     var showBackupPasswordDialog by remember { mutableStateOf(false) }
@@ -166,6 +170,7 @@ fun SettingsScreen(
         var error by remember { mutableStateOf<String?>(null) }
         
         AlertDialog(
+            modifier = Modifier.border(1.dp, EdvoColor.ErrorRed, AlertDialogDefaults.shape),
             containerColor = EdvoColor.DarkSurface,
             titleContentColor = EdvoColor.ErrorRed,
             textContentColor = EdvoColor.LightGray,
@@ -320,7 +325,7 @@ fun SettingsScreen(
             EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text("Version", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
-                    Text("v0.2.0", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
+                    Text("v0.3.0", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
                 }
             }
             

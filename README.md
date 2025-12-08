@@ -1,25 +1,42 @@
 # EDVO - The Vault
 
-**EDVO** is a high-security, local-first vault application built with **Kotlin Multiplatform** (Compose Multiplatform). It is designed to provide maximum privacy with an impenetrable UI.
+![Version](https://img.shields.io/badge/version-v0.3.0-green) ![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Desktop-blue)
 
-## Core Features
+**EDVO** is a high-security, local-first vault application built with **Kotlin Multiplatform** (Compose Multiplatform). It combines uncompromising privacy with a distinct Neo-Brutalist aesthetic.
 
-*   **Zero-Knowledge Security**: Data is encrypted locally. No cloud sync.
-*   **Neo-Terminal UI**: A distinct, high-contrast aesthetic inspired by retro-futurism (Green/Black).
-*   **Fortified Editor**:
-    *   **SecureTextField**: Prevents keyboard learning, paste attacks, and unauthorized selection.
-    *   **Clipboard & Screenshot Blocking**: Toggleable protections to prevent data leaks.
-    *   **Panic Mode**: Rapid data wipe capabilities.
+---
 
-## Tech Stack
+## 🛡️ Core Features
 
-*   **framework**: Kotlin Multiplatform (Android, iOS, Desktop/JVM)
-*   **UI**: Compose Multiplatform with a custom `NeoTheme` design system.
-*   **Architecture**: MVVM with Clean Architecture principles.
-*   **Persistence**: SQLDelight (Local Database).
-*   **Security**: `androidx.security.crypto` (Android) / Common Crypto (iOS).
+### 🔒 Maximum Security
+*   **Zero-Knowledge Architecture**: Your data is encrypted locally (AES-256). No cloud sync, no tracking.
+*   **Fortified Editor**: `SecureTextField` implementation prevents keyboard learning, clipboard capture, and unauthorized text selection.
+*   **Release Hardening**: Automated ProGuard rules strip all logs in production builds to prevent data leakage.
+*   **Panic Mode**: Rapidly wipe all data effectively using the "Kill Switch" slider.
 
-## Getting Started
+### ⚡ Fluid Performance (v0.3.0)
+*   **Just-in-Time Animations**: A rewritten motion engine delivers zero-lag scrolling with bouncy spring physics, animating items exactly as they enter the viewport.
+*   **Native Optimization**: Uses platform-native implementations for date formatting and navigation handling for maximum efficiency.
+
+### 🎛️ Advanced UX
+*   **Multi-Selection Management**: Long-press to select notes, batch delete, and manage your vault with ease.
+*   **Smart Navigation**: Integrated hardware back button support that understands context (clearing selections vs. navigation).
+*   **Neo-Terminal UI**: A high-contrast, retro-futurist design system featuring "Signal Red" alerts and Monospace typography.
+
+---
+
+## 🛠️ Tech Stack
+
+*   **Language**: Kotlin (100%)
+*   **Framework**: Compose Multiplatform (Android, iOS, Desktop)
+*   **Architecture**: MVVM + Clean Architecture
+*   **Persistence**: SQLDelight (Local SQLite Database)
+*   **Async**: Kotlin Coroutines & Flow
+*   **State Management**: `remember` / `collectAsState`
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 *   Android Studio / IntelliJ IDEA (Latest)

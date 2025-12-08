@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.example.edvo.presentation.components.util.BackHandler
 import org.example.edvo.presentation.components.SecureTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -20,6 +21,8 @@ fun NoteDetailScreen(
     initialTitle: String? = null,
     onBack: () -> Unit
 ) {
+    BackHandler(enabled = true) { onBack() }
+
     // Local state for editing
     var title by remember { mutableStateOf(initialTitle ?: "") }
     var content by remember { mutableStateOf("") }
@@ -86,6 +89,19 @@ fun NoteDetailScreen(
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                // Metadata
+                if (noteDetail != null) {
+                    Text(
+                        text = "LAST MODIFIED: ${org.example.edvo.util.DateUtil.formatFull(noteDetail!!.updatedAt)}",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = androidx.compose.ui.graphics.Color.Gray
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                
                 SecureTextField(
                     value = content,
                     onValueChange = { content = it },
