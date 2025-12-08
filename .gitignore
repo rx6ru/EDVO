@@ -1,0 +1,65 @@
+.idea/
+*.iml
+*.ipr
+*.iws
+*.log
+.DS_Store
+Thumbs.db
+captures/
+
+.gradle/
+!gradle-wrapper.jar
+gradle-app.setting
+gradle.xml
+
+/build/
+/*/build/
+/app/build/
+/**/build/
+*/out/
+
+!src/**/build/
+
+.kotlin/
+*/.kotlin/
+.compose-cache/
+**/.compose-cache/
+**/compose-build/
+
+*.klib
+*.knm
+*/bin/
+*/build/cocoapods/
+*.podspec
+
+local.properties
+*.keystore
+*.jks
+key.properties
+.externalNativeBuild
+.cxx
+
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+xcuserdata/
+**/xcshareddata/WorkspaceSettings.xcsettings
+*.xcuserstate
+DerivedData/
+Pods/
+
+*.apk
+*.aab
+*.ap_
+
+# node_modules/
+# package-lock.json
+# yarn.lock
+# */wasmJs/
+# */browserProductionWebpack/
+# fastlane/report.xml
+# fastlane/Preview.html
+# fastlane/screenshots

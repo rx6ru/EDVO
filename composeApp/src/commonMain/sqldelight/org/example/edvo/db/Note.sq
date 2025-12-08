@@ -1,0 +1,30 @@
+CREATE TABLE Note (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    content_encrypted BLOB NOT NULL,
+    iv BLOB NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+selectAll:
+SELECT id, title, updated_at FROM Note
+ORDER BY updated_at DESC;
+
+selectAllFull:
+SELECT * FROM Note;
+
+getById:
+SELECT * FROM Note
+WHERE id = ?;
+
+insertNote:
+INSERT OR REPLACE INTO Note(id, title, content_encrypted, iv, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM Note
+WHERE id = ?;
+
+deleteAll:
+DELETE FROM Note;
