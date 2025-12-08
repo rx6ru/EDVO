@@ -54,8 +54,12 @@ fun App() {
         val localTextToolbar = LocalTextToolbar.current
         val emptyTextToolbar = remember { EmptyTextToolbar }
         
+        val localClipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+        val noOpClipboardManager = remember { NoOpClipboardManager() }
+        
         CompositionLocalProvider(
-            LocalTextToolbar provides if (copyPasteEnabled) localTextToolbar else emptyTextToolbar
+            LocalTextToolbar provides if (copyPasteEnabled) localTextToolbar else emptyTextToolbar,
+            androidx.compose.ui.platform.LocalClipboardManager provides if (copyPasteEnabled) localClipboardManager else noOpClipboardManager
         ) {
             when (currentScreen) {
                 Screen.AUTH -> {
@@ -134,6 +138,11 @@ object EmptyTextToolbar : TextToolbar {
         onSelectAllRequested: (() -> Unit)?
     ) {
     }
+}
+
+class NoOpClipboardManager : androidx.compose.ui.platform.ClipboardManager {
+    override fun getText(): androidx.compose.ui.text.AnnotatedString? = null
+    override fun setText(annotatedString: androidx.compose.ui.text.AnnotatedString) {}
 }
 
 object DependencyInjection {

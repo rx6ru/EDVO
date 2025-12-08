@@ -2,6 +2,7 @@ package org.example.edvo.presentation.designsystem
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,6 +30,7 @@ fun NeoSuccessOverlay(
             modifier = Modifier
                 .width(280.dp)
                 .background(NeoPaletteV2.SurfaceSecondary, RoundedCornerShape(16.dp))
+                .border(2.dp, NeoPaletteV2.BorderInactive, RoundedCornerShape(16.dp))
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -55,7 +57,8 @@ fun NeoSuccessOverlay(
                 Text(
                     text = message,
                     style = NeoTypographyV2.BodyAction(),
-                    color = NeoPaletteV2.AccentWhite
+                    color = NeoPaletteV2.AccentWhite,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         }
