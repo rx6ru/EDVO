@@ -314,6 +314,16 @@ fun SettingsScreen(
                 }
             }
             
+            // About Section
+            Text("ABOUT", style = MaterialTheme.typography.titleSmall, color = EdvoColor.LightGray)
+            
+            EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Text("Version", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
+                    Text("v0.2.0", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
+                }
+            }
+            
             Spacer(modifier = Modifier.weight(1f))
             
             var sliderResetKey by remember { mutableStateOf(0) }
@@ -336,6 +346,7 @@ fun SettingsScreen(
                     sliderResetKey++
                 }
             }
+
         }
     }
 }

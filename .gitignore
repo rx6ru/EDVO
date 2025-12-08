@@ -36,6 +36,9 @@ local.properties
 *.keystore
 *.jks
 key.properties
+keystore.properties
+edvo-release.jks
+
 .externalNativeBuild
 .cxx
 
@@ -56,12 +59,12 @@ Pods/
 *.ap_
 
 edvo-rules.md
+edvo_backup.enc
+edvo_backup.json
+dump.db
 
 # node_modules/
 # package-lock.json
 # yarn.lock
 # */wasmJs/
 # */browserProductionWebpack/
-# fastlane/report.xml
-# fastlane/Preview.html
-# fastlane/screenshots

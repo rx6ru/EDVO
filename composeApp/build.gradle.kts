@@ -1,5 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -22,7 +24,11 @@ sqldelight {
 }
 
 kotlin {
-    androidTarget()
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
     
     listOf(
         iosArm64(),
@@ -82,19 +88,50 @@ android {
         applicationId = "org.example.edvo"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
+
+    // --- NEW: Signing Configuration ---
+    signingConfigs {
+        create("release") {
+            // Load the secrets from the keystore.properties file
+            val keystorePropertiesFile = rootProject.file("composeApp/keystore.properties")
+            val keystoreProperties = Properties()
+            
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            // --- NEW: Security & Optimization ---
+            isMinifyEnabled = true  // Obfuscate code (Security)
+            isShrinkResources = true // Remove unused files
+            
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
+            // Apply the signing config
+            signingConfig = signingConfigs.getByName("release")
         }
     }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -112,7 +149,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "org.example.edvo"
-            packageVersion = "1.0.0"
+            packageVersion = "1.2.0" // DMG requires Major version > 0 (0.2.0 is invalid)
         }
     }
 }

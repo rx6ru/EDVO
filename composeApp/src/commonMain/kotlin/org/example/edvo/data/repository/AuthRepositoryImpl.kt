@@ -21,7 +21,6 @@ class AuthRepositoryImpl(
     // Actually, I can use replace_file_content for constructor block if I include enough context.
     
     // Continuing with replace of Constructor:
-    
     /* Using Multi-Replace in next step */
 
     companion object {
