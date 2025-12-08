@@ -40,6 +40,3 @@
 
 **iOS**
 Open `iosApp/iosApp.xcodeproj` in Xcode and run.
-
-## License
-Proprietary. All rights reserved.
