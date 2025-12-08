@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.example.edvo.domain.model.NoteDetail
 import org.example.edvo.domain.model.NoteSummary
@@ -25,6 +26,10 @@ class NoteViewModel(
 
     private val _detailState = MutableStateFlow<NoteDetail?>(null)
     val detailState = _detailState.asStateFlow()
+    
+    // Search
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
 
     init {
         loadNotes()
@@ -33,13 +38,28 @@ class NoteViewModel(
     private fun loadNotes() {
         viewModelScope.launch {
             try {
-                repository.getNotes().collectLatest { notes ->
-                    _listState.value = NoteListState.Success(notes)
+                combine(
+                    repository.getNotes(),
+                    _searchQuery
+                ) { notes, query ->
+                    if (query.isBlank()) {
+                        notes
+                    } else {
+                        // Fuzzy-ish: Case insensitive contains.
+                        // Can be improved to subsequence if needed.
+                        notes.filter { it.title.contains(query, ignoreCase = true) }
+                    }
+                }.collectLatest { filtered ->
+                    _listState.value = NoteListState.Success(filtered)
                 }
             } catch (e: Exception) {
                 _listState.value = NoteListState.Error(e.message ?: "Unknown error")
             }
         }
+    }
+    
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
     }
 
     fun loadNoteDetail(id: String) {

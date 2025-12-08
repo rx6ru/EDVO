@@ -1,19 +1,20 @@
 package org.example.edvo.presentation.auth
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import org.example.edvo.presentation.components.EdvoButton
-import org.example.edvo.presentation.components.EdvoScaffold
-import org.example.edvo.presentation.components.EdvoTextField
-import org.example.edvo.theme.EdvoColor
+import androidx.compose.ui.unit.sp
+import org.example.edvo.presentation.designsystem.*
+import org.jetbrains.compose.resources.painterResource
+import edvo.composeapp.generated.resources.Res
+import edvo.composeapp.generated.resources.edvo_base_logo
 
 @Composable
 fun AuthScreen(
@@ -21,87 +22,72 @@ fun AuthScreen(
     onUnlockSuccess: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    var passwordInput by remember { mutableStateOf("") }
     
-    // Side effect to handle navigation on success
     LaunchedEffect(state) {
         if (state is AuthState.Unlocked) {
             onUnlockSuccess()
         }
     }
+    
+    // Startup Animation (Heartbeat) - Disabled per request
+    // "Do not have the continus breathing animation of the edvo base logo"
+    val pulseScale = 1.0f
 
-    EdvoScaffold {
-        // Entry Animation
-        val transitionState = remember { MutableTransitionState(false).apply { targetState = true } }
-        val transition = updateTransition(transitionState, label = "Entry")
-        
-        val offsetY by transition.animateDp(
-            transitionSpec = { tween(800, easing = FastOutSlowInEasing) },
-            label = "Offset"
-        ) { visible -> if (visible) 0.dp else 100.dp }
-
-        val alpha by transition.animateFloat(
-            transitionSpec = { tween(800) },
-            label = "Alpha"
-        ) { visible -> if (visible) 1f else 0f }
-
+    Scaffold(containerColor = NeoPaletteV2.Canvas) { padding ->
         Column(
             modifier = Modifier
+                .padding(padding)
                 .fillMaxSize()
-                .padding(24.dp)
-                .graphicsLayer {
-                    translationY = offsetY.toPx()
-                    this.alpha = alpha
-                },
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo / Title
-            Text(
-                "EDVO",
-                style = MaterialTheme.typography.displayLarge,
-                color = EdvoColor.White
+            
+            // Hero Element: Base Logo
+            // "Use the edvo_base_logo for the starting page instead of the ghost icon"
+            // "The apps name EDVO is not used on signup/login page"
+            Image(
+                painter = painterResource(Res.drawable.edvo_base_logo),
+                contentDescription = "EDVO Logo",
+                modifier = Modifier
+                    .size(120.dp)
+                    .graphicsLayer {
+                        scaleX = pulseScale
+                        scaleY = pulseScale
+                    }
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Encrypted Data Vault ∅ne",
-                style = MaterialTheme.typography.labelLarge,
-                color = EdvoColor.LightGray,
-                modifier = Modifier.alpha(0.7f)
-            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("EDVO", style = NeoTypographyV2.Header().copy(fontSize = 32.sp))
+            
             Spacer(modifier = Modifier.height(48.dp))
 
             when (val s = state) {
                 is AuthState.Loading -> {
-                     CircularProgressIndicator(color = EdvoColor.White)
+                     CircularProgressIndicator(color = NeoPaletteV2.Functional.SignalGreen)
                 }
                 is AuthState.SetupRequired -> {
                     SetupView(viewModel)
                 }
                 is AuthState.Locked -> {
                     LockedView(
-                        password = passwordInput,
-                        onPasswordChange = { passwordInput = it },
-                        onUnlock = { viewModel.login(passwordInput) }
+                        onUnlock = { pwd -> viewModel.login(pwd) }
                     )
                 }
                 is AuthState.Error -> {
                     Text(
                         "Error: ${s.message}", 
-                        color = EdvoColor.ErrorRed,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = NeoTypographyV2.DataMono().copy(color = NeoPaletteV2.Functional.SignalRed)
                     )
                     Spacer(modifier = Modifier.height(24.dp))
-                    EdvoButton(
-                        text = "Try Again",
-                        onClick = { 
-                            viewModel.resetError() 
-                            passwordInput = ""
-                        }
+                    SmartButton(
+                        text = "Retry",
+                        onClick = { viewModel.resetError() },
+                        isDestructive = true
                     )
                 }
                 is AuthState.Unlocked -> {
-                     CircularProgressIndicator(color = EdvoColor.White)
+                     Text("Unlocked", style = NeoTypographyV2.Header().copy(color = NeoPaletteV2.Functional.SignalGreen))
                 }
             }
         }
@@ -114,39 +100,40 @@ private fun SetupView(viewModel: AuthViewModel) {
     var confirmPassword by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf<String?>(null) }
     
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Create Master Password", color = EdvoColor.White)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        Text("Create Master Password", style = NeoTypographyV2.Header())
+        Text("This password encrypts all your data.", style = NeoTypographyV2.DataMono())
         Spacer(modifier = Modifier.height(24.dp))
-        
-        EdvoTextField(
+
+        NeoInput(
             value = password,
             onValueChange = { password = it; errorText = null },
-            label = "Password",
+            label = "Master Password",
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
-        EdvoTextField(
+        NeoInput(
             value = confirmPassword,
             onValueChange = { confirmPassword = it; errorText = null },
-            label = "Confirm",
+            label = "Confirm Password",
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
         
         if (errorText != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(errorText!!, color = EdvoColor.ErrorRed)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(errorText!!, style = NeoTypographyV2.DataMono().copy(color = NeoPaletteV2.Functional.SignalRed))
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
-        EdvoButton(
-            text = "Initialize Vault", 
+        Spacer(modifier = Modifier.height(48.dp))
+        SmartButton(
+            text = "Set Password", 
             onClick = {
                 if (password != confirmPassword) {
                     errorText = "Passwords do not match"
                 } else if (password.length < 6) {
-                    errorText = "Password too short"
+                    errorText = "Password is too weak"
                 } else {
                     viewModel.register(password)
                 }
@@ -158,14 +145,17 @@ private fun SetupView(viewModel: AuthViewModel) {
 
 @Composable
 private fun LockedView(
-    password: String,
-    onPasswordChange: (String) -> Unit,
-    onUnlock: () -> Unit
+    onUnlock: (String) -> Unit
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        EdvoTextField(
+    var password by remember { mutableStateOf("") }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        Text("Welcome Back", style = NeoTypographyV2.Header())
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        NeoInput(
             value = password,
-            onValueChange = onPasswordChange,
+            onValueChange = { password = it },
             label = "Master Password",
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
@@ -173,26 +163,10 @@ private fun LockedView(
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Pulse Animation for Unlock Button
-        val infiniteTransition = rememberInfiniteTransition()
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = 1.05f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            )
+        SmartButton(
+            text = "Unlock",
+            onClick = { onUnlock(password) },
+            modifier = Modifier.fillMaxWidth()
         )
-        
-        Box(modifier = Modifier.graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }) {
-            EdvoButton(
-                text = "Unlock Vault",
-                onClick = onUnlock,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
     }
 }

@@ -6,11 +6,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import java.lang.ref.WeakReference
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        AndroidActivityTracker.currentActivity = WeakReference(this)
 
         // Initialize Database
         val factory = org.example.edvo.db.DatabaseDriverFactory(applicationContext)

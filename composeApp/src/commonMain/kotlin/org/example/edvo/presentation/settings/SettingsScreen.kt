@@ -17,6 +17,9 @@ import org.example.edvo.presentation.components.EdvoCard
 import org.example.edvo.presentation.components.EdvoScaffold
 import org.example.edvo.presentation.components.EdvoTextField
 import org.example.edvo.theme.EdvoColor
+import org.example.edvo.presentation.designsystem.NeoSlideToAct
+import org.example.edvo.presentation.designsystem.NeoSuccessOverlay
+import org.example.edvo.presentation.designsystem.NeoPaletteV2
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,10 +35,14 @@ fun SettingsScreen(
     var showBackupOptionsDialog by remember { mutableStateOf(false) }
     var showBackupPasswordDialog by remember { mutableStateOf(false) }
     var isExportMode by remember { mutableStateOf(true) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
     
     // FileKit Launchers
     var pendingFile by remember { mutableStateOf<io.github.vinceglb.filekit.core.PlatformFile?>(null) }
     val exportData by viewModel.exportData.collectAsState()
+    
+    val screenshotsEnabled by viewModel.screenshotsEnabled.collectAsState()
+    val copyPasteEnabled by viewModel.copyPasteEnabled.collectAsState()
     
     val exportLauncher = io.github.vinceglb.filekit.compose.rememberFileSaverLauncher { 
         viewModel.clearExportData()
@@ -59,6 +66,16 @@ fun SettingsScreen(
     }
 
     // Dialogs
+    if (successMessage != null) {
+        NeoSuccessOverlay(
+            message = successMessage!!,
+            onDismiss = {
+                successMessage = null
+                viewModel.resetState()
+            }
+        )
+    }
+
     if (showBackupOptionsDialog) {
         AlertDialog(
             containerColor = EdvoColor.DarkSurface,
@@ -103,7 +120,7 @@ fun SettingsScreen(
             containerColor = EdvoColor.DarkSurface,
             titleContentColor = EdvoColor.White,
             textContentColor = EdvoColor.LightGray,
-            onDismissRequest = { if (state !is SettingsState.Submitting) showBackupPasswordDialog = false },
+            onDismissRequest = { if (state !is SettingsState.Loading) showBackupPasswordDialog = false },
             title = { Text(title) },
             text = {
                 Column {
@@ -135,7 +152,7 @@ fun SettingsScreen(
                              }
                          }
                      },
-                     enabled = state !is SettingsState.Submitting
+                     enabled = state !is SettingsState.Loading
                  )
             },
             dismissButton = {
@@ -152,7 +169,7 @@ fun SettingsScreen(
             containerColor = EdvoColor.DarkSurface,
             titleContentColor = EdvoColor.ErrorRed,
             textContentColor = EdvoColor.LightGray,
-            onDismissRequest = { if (state !is SettingsState.Submitting) showWipeConfirmDialog = false },
+            onDismissRequest = { if (state !is SettingsState.Loading) showWipeConfirmDialog = false },
             title = { Text("Kill Switch Activation") },
             text = {
                 Column {
@@ -190,9 +207,18 @@ fun SettingsScreen(
     }
 
     LaunchedEffect(state) {
-        if (state is SettingsState.DataWiped) {
-            showWipeConfirmDialog = false
-            onWipeSuccess()
+        when (state) {
+            is SettingsState.DataWiped -> {
+                showWipeConfirmDialog = false
+                onWipeSuccess()
+            }
+            is SettingsState.Success -> {
+                val s = state as SettingsState.Success
+                if (s.type == OperationType.BACKUP_EXPORT || s.type == OperationType.BACKUP_IMPORT) {
+                    successMessage = s.message
+                }
+            }
+            else -> {}
         }
     }
 
@@ -227,14 +253,89 @@ fun SettingsScreen(
                 }
             }
             
+            // Features Section
+            Text("FEATURES", style = MaterialTheme.typography.titleSmall, color = EdvoColor.LightGray)
+            
+            EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Screenshots", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
+                            Text(
+                                if (screenshotsEnabled) "Allowed" else "Blocked (Secure)", 
+                                style = MaterialTheme.typography.bodySmall, 
+                                color = if (screenshotsEnabled) EdvoColor.ErrorRed else EdvoColor.Primary
+                            )
+                        }
+                        Switch(
+                            checked = screenshotsEnabled,
+                            onCheckedChange = { viewModel.toggleScreenshots(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = NeoPaletteV2.Functional.SignalGreen,
+                                uncheckedThumbColor = EdvoColor.LightGray,
+                                uncheckedTrackColor = EdvoColor.Surface,
+                                uncheckedBorderColor = EdvoColor.LightGray
+                            )
+                        )
+                    }
+                    
+                    HorizontalDivider(color = EdvoColor.Background)
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Clipboard (Copy/Paste)", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
+                            Text(
+                                if (copyPasteEnabled) "Enabled" else "Disabled", 
+                                style = MaterialTheme.typography.bodySmall, 
+                                color = EdvoColor.LightGray
+                            )
+                        }
+                        Switch(
+                            checked = copyPasteEnabled,
+                            onCheckedChange = { viewModel.toggleCopyPaste(it) },
+                             colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = NeoPaletteV2.Functional.SignalGreen,
+                                uncheckedThumbColor = EdvoColor.LightGray,
+                                uncheckedTrackColor = EdvoColor.Surface,
+                                uncheckedBorderColor = EdvoColor.LightGray
+                            )
+                        )
+                    }
+                }
+            }
+            
             Spacer(modifier = Modifier.weight(1f))
             
-            EdvoButton(
-                text = "KILL SWITCH",
-                onClick = { showWipeConfirmDialog = true },
-                type = EdvoButtonType.Destructive,
-                modifier = Modifier.fillMaxWidth()
-            )
+            var sliderResetKey by remember { mutableStateOf(0) }
+            
+            key(sliderResetKey) {
+                NeoSlideToAct(
+                    text = "SLIDE TO NUKE DATA",
+                    onSwipeComplete = { 
+                         showWipeConfirmDialog = true 
+                    },
+                    isDestructive = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    onOrphaned = {}
+                )
+            }
+            
+            // If dialog is dismissed (cancelled), reset slider
+            LaunchedEffect(showWipeConfirmDialog) {
+                if (!showWipeConfirmDialog) {
+                    sliderResetKey++
+                }
+            }
         }
     }
 }

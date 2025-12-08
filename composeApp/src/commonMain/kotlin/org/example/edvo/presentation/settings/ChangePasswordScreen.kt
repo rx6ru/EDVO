@@ -7,6 +7,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,12 +27,15 @@ fun ChangePasswordScreen(
     // Handle State Changes
     LaunchedEffect(state) {
         if (state is SettingsState.Success) {
-            viewModel.resetState()
-            onLogoutRequired()
+            val s = state as SettingsState.Success
+            if (s.type == OperationType.PASSWORD_CHANGE) {
+                viewModel.resetState()
+                onLogoutRequired()
+            }
         }
     }
     
-    val isLoading = state is SettingsState.Submitting
+    val isLoading = state is SettingsState.Loading
     val vmError = (state as? SettingsState.Error)?.message
 
     Scaffold(
@@ -38,19 +43,8 @@ fun ChangePasswordScreen(
             TopAppBar(
                 title = { Text("Rotate Encryption Key") },
                 navigationIcon = {
-                     // Back navigation should be disabled during loading? 
-                     // User said "Warning: do not close app". 
-                     // If loading, maybe disable back?
-                     // Standard practice: if isLoading, disable interactions.
-                     // But we can leave back enabled if we haven't started transaction yet.
-                     // Once started (Submitting), we should block.
                     IconButton(onClick = onBack, enabled = !isLoading) {
-                        Text("Back") // Placeholder Icon or text? User said "Back Navigation Icon" for Settings.
-                        // For this screen, implies standard back behavior.
-                        // I'll use standard ArrowBack text/icon later or if I have clean import.
-                        // I'll stick to text for safety or standard icon if imported in file.
-                        // Let's use simple Text "Back" or Icon if I add imports. 
-                        // I'll add imports for Icons.
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )

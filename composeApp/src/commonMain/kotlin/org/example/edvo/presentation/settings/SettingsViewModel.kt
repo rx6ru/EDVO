@@ -8,14 +8,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.example.edvo.domain.repository.AuthRepository
 import io.github.vinceglb.filekit.core.PlatformFile
+import org.example.edvo.setScreenProtection
 
 sealed class SettingsState {
     object Idle : SettingsState()
     object Loading : SettingsState()
-    object Submitting : SettingsState()
-    object Success : SettingsState()
+    data class Success(val message: String? = null, val type: OperationType) : SettingsState()
+    // DataWiped is a special success case for Kill Switch
     object DataWiped : SettingsState()
     data class Error(val message: String) : SettingsState()
+}
+
+enum class OperationType {
+    PASSWORD_CHANGE, BACKUP_EXPORT, BACKUP_IMPORT, NONE
 }
 
 class SettingsViewModel(
@@ -25,12 +30,35 @@ class SettingsViewModel(
     private val _state = MutableStateFlow<SettingsState>(SettingsState.Idle)
     val state = _state.asStateFlow()
 
+    // Features
+    private val _screenshotsEnabled = MutableStateFlow(false) // Default: Blocked (False means "Enable Screenshot" feature is OFF?? No. "Enable Screenshot" means Allowed.)
+    // Let's stick to prompt: "enable/disbale Screenshot". Default likely Enabled? Or Disabled for security app?
+    // Security app -> Default Disabled (Secure). So screenshotsEnabled = false.
+    val screenshotsEnabled = _screenshotsEnabled.asStateFlow()
+    
+    private val _copyPasteEnabled = MutableStateFlow(true)
+    val copyPasteEnabled = _copyPasteEnabled.asStateFlow()
+    
+    init {
+        // Enforce default security
+        setScreenProtection(_screenshotsEnabled.value)
+    }
+    
+    fun toggleScreenshots(enabled: Boolean) {
+        _screenshotsEnabled.value = enabled
+        setScreenProtection(enabled)
+    }
+    
+    fun toggleCopyPaste(enabled: Boolean) {
+        _copyPasteEnabled.value = enabled
+    }
+
     fun changePassword(old: String, new: String) {
         viewModelScope.launch {
-            _state.value = SettingsState.Submitting
+            _state.value = SettingsState.Loading
             try {
                 authRepository.changePassword(old, new)
-                _state.value = SettingsState.Success
+                _state.value = SettingsState.Success(type = OperationType.PASSWORD_CHANGE)
             } catch (e: Exception) {
                 _state.value = SettingsState.Error(e.message ?: "Failed to change password")
             }
@@ -38,11 +66,7 @@ class SettingsViewModel(
     }
 
     fun wipeVault() {
-        // Deprecated simple wipe, redirect to killSwitch? 
-        // Or keep internal.
-        // User wants Kill Switch button with password.
-        // This function was used by previous "Wipe Vault". 
-        // Note: verifyPassword calls are async.
+        // Deprecated simple wipe
     }
 
     private val _exportData = MutableStateFlow<ByteArray?>(null)
@@ -50,11 +74,11 @@ class SettingsViewModel(
 
     fun exportBackup(password: String) {
         viewModelScope.launch {
-            _state.value = SettingsState.Submitting
+            _state.value = SettingsState.Loading
             try {
                 val backupBytes = authRepository.exportBackup(password)
                 _exportData.value = backupBytes
-                _state.value = SettingsState.Success
+                _state.value = SettingsState.Success("Backup Exported Successfully", OperationType.BACKUP_EXPORT)
             } catch (e: Exception) {
                 _state.value = SettingsState.Error("Export failed: ${e.message}")
             }
@@ -67,11 +91,11 @@ class SettingsViewModel(
     
     fun importBackup(password: String, file: io.github.vinceglb.filekit.core.PlatformFile) {
         viewModelScope.launch {
-            _state.value = SettingsState.Submitting
+            _state.value = SettingsState.Loading
             try {
                 val bytes = file.readBytes()
                 authRepository.importBackup(password, bytes)
-                _state.value = SettingsState.Success
+                _state.value = SettingsState.Success("Backup Imported Successfully", OperationType.BACKUP_IMPORT)
             } catch (e: Exception) {
                 _state.value = SettingsState.Error("Import failed: ${e.message}")
             }
@@ -80,7 +104,7 @@ class SettingsViewModel(
 
     fun triggerKillSwitch(password: String) {
         viewModelScope.launch {
-            _state.value = SettingsState.Submitting
+            _state.value = SettingsState.Loading
             try {
                 if (authRepository.verifyPassword(password)) {
                     authRepository.wipeData()
