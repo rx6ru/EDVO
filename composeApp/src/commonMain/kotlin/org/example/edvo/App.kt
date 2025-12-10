@@ -1,16 +1,14 @@
 package org.example.edvo
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import org.example.edvo.core.session.SessionManager
 import org.example.edvo.data.repository.AuthRepositoryImpl
-import org.example.edvo.data.repository.NoteRepositoryImpl
+import org.example.edvo.data.repository.AssetRepositoryImpl
 import org.example.edvo.presentation.auth.AuthScreen
 import org.example.edvo.presentation.auth.AuthViewModel
-import org.example.edvo.presentation.note.NoteDetailScreen
-import org.example.edvo.presentation.note.NoteListScreen
-import org.example.edvo.presentation.note.NoteViewModel
+import org.example.edvo.presentation.note.AssetDetailScreen
+import org.example.edvo.presentation.note.AssetViewModel
 import org.example.edvo.presentation.settings.ChangePasswordScreen
 import org.example.edvo.presentation.settings.SettingsScreen
 import org.example.edvo.presentation.designsystem.NeoTheme
@@ -18,13 +16,10 @@ import org.example.edvo.presentation.note.VaultScreen
 import org.example.edvo.presentation.settings.SettingsViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.platform.LocalTextToolbar
-import androidx.compose.ui.platform.TextToolbar
-import androidx.compose.ui.platform.TextToolbarStatus
-import androidx.compose.ui.geometry.Rect
 import org.example.edvo.presentation.components.util.EmptyTextToolbar
 
 enum class Screen {
-    AUTH, NOTE_LIST, NOTE_DETAIL, SETTINGS, CHANGE_PASSWORD
+    AUTH, ASSET_LIST, ASSET_DETAIL, SETTINGS, CHANGE_PASSWORD
 }
 
 @Composable
@@ -32,7 +27,7 @@ enum class Screen {
 fun App() {
     NeoTheme {
         var currentScreen by remember { mutableStateOf(Screen.AUTH) }
-        var selectedNoteId by remember { mutableStateOf<String?>(null) }
+        var selectedAssetId by remember { mutableStateOf<String?>(null) }
         
         // Ensure non-null capture for smart casting
         val db = DependencyInjection.database
@@ -44,10 +39,10 @@ fun App() {
         }
 
         val authRepository = remember { AuthRepositoryImpl(db, driver) }
-        val noteRepository = remember { NoteRepositoryImpl(db) }
+        val assetRepository = remember { AssetRepositoryImpl(db) }
         
         val authViewModel = remember { AuthViewModel(authRepository) }
-        val noteViewModel = remember { NoteViewModel(noteRepository) }
+        val assetViewModel = remember { AssetViewModel(assetRepository) }
         val settingsViewModel = remember { SettingsViewModel(authRepository) }
         
         val copyPasteEnabled by settingsViewModel.copyPasteEnabled.collectAsState()
@@ -66,19 +61,19 @@ fun App() {
                 Screen.AUTH -> {
                     AuthScreen(
                         viewModel = authViewModel,
-                        onUnlockSuccess = { currentScreen = Screen.NOTE_LIST }
+                        onUnlockSuccess = { currentScreen = Screen.ASSET_LIST }
                     )
                 }
-                Screen.NOTE_LIST -> {
+                Screen.ASSET_LIST -> {
                     VaultScreen(
-                        viewModel = noteViewModel,
-                        onNoteClick = { id, _ -> 
-                            selectedNoteId = id
-                            currentScreen = Screen.NOTE_DETAIL
+                        viewModel = assetViewModel,
+                        onAssetClick = { id, _ -> 
+                            selectedAssetId = id
+                            currentScreen = Screen.ASSET_DETAIL
                         },
                         onCreateClick = {
-                            selectedNoteId = null
-                            currentScreen = Screen.NOTE_DETAIL
+                            selectedAssetId = null
+                            currentScreen = Screen.ASSET_DETAIL
                         },
                         onSettingsClick = {
                                 currentScreen = Screen.SETTINGS
@@ -90,17 +85,17 @@ fun App() {
                         }
                     )
                 }
-                Screen.NOTE_DETAIL -> {
-                    NoteDetailScreen(
-                        viewModel = noteViewModel,
-                        noteId = selectedNoteId,
-                        onBack = { currentScreen = Screen.NOTE_LIST }
+                Screen.ASSET_DETAIL -> {
+                    AssetDetailScreen(
+                        viewModel = assetViewModel,
+                        assetId = selectedAssetId,
+                        onBack = { currentScreen = Screen.ASSET_LIST }
                     )
                 }
                 Screen.SETTINGS -> {
                     val settingsState by settingsViewModel.state.collectAsState()
                     SettingsScreen(
-                        onBack = { currentScreen = Screen.NOTE_LIST },
+                        onBack = { currentScreen = Screen.ASSET_LIST },
                         onChangePasswordClick = { currentScreen = Screen.CHANGE_PASSWORD },
                         onBackupClick = { /* Handled in Screen */ },
                         onWipeSuccess = { 

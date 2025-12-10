@@ -10,22 +10,22 @@ import kotlinx.coroutines.withContext
 import org.example.edvo.core.crypto.CryptoManager
 import org.example.edvo.core.session.SessionManager
 import org.example.edvo.db.EdvoDatabase
-import org.example.edvo.domain.model.NoteDetail
-import org.example.edvo.domain.model.NoteSummary
-import org.example.edvo.domain.repository.NoteRepository
+import org.example.edvo.domain.model.AssetDetail
+import org.example.edvo.domain.model.AssetSummary
+import org.example.edvo.domain.repository.AssetRepository
 import java.util.UUID
 
-class NoteRepositoryImpl(
+class AssetRepositoryImpl(
     private val database: EdvoDatabase
-) : NoteRepository {
+) : AssetRepository {
 
-    private val queries = database.noteQueries
+    private val queries = database.assetQueries
 
-    override fun getNotes(): Flow<List<NoteSummary>> {
+    override fun getAssets(): Flow<List<AssetSummary>> {
         return queries.selectAll().asFlow().mapToList(Dispatchers.IO).map { list ->
             list.map { entity ->
                 // Lazy: Do NOT decrypt content here.
-                NoteSummary(
+                AssetSummary(
                     id = entity.id,
                     title = entity.title,
                     createdAt = entity.created_at,
@@ -35,7 +35,7 @@ class NoteRepositoryImpl(
         }
     }
 
-    override suspend fun getNoteById(id: String): NoteDetail? {
+    override suspend fun getAssetById(id: String): AssetDetail? {
         return withContext(Dispatchers.IO) {
             val entity = queries.getById(id).executeAsOneOrNull() ?: return@withContext null
             val masterKey = SessionManager.getMasterKey() ?: throw IllegalStateException("Session locked")
@@ -45,7 +45,7 @@ class NoteRepositoryImpl(
                 val decryptedBytes = CryptoManager.decrypt(entity.content_encrypted, masterKey, entity.iv)
                 val content = decryptedBytes?.decodeToString() ?: "Error: Decryption Failed"
                 
-                NoteDetail(
+                AssetDetail(
                     id = entity.id,
                     title = entity.title,
                     content = content,
@@ -55,7 +55,7 @@ class NoteRepositoryImpl(
                 e.printStackTrace()
                 // Return detail with error message in content or null?
                 // Returning object allows user to allow seeing title and maybe deleting.
-                NoteDetail(
+                AssetDetail(
                     id = entity.id,
                     title = entity.title,
                     content = "Error: ${e.message}",
@@ -65,24 +65,14 @@ class NoteRepositoryImpl(
         }
     }
 
-    override suspend fun saveNote(id: String?, title: String, content: String) {
+    override suspend fun saveAsset(id: String?, title: String, content: String) {
         withContext(Dispatchers.IO) {
             val masterKey = SessionManager.getMasterKey() ?: throw IllegalStateException("Session locked")
             
-            val noteId = id ?: UUID.randomUUID().toString()
+            val assetId = id ?: UUID.randomUUID().toString()
             val iv = CryptoManager.generateRandomBytes(12)
             val encryptedContent = CryptoManager.encrypt(content.toByteArray(), masterKey, iv)
             val now = System.currentTimeMillis()
-            
-            // Should preserve created_at if updating? 
-            // Query replaces row. We need to fetch original created_at if exists?
-            // Or just simplified for now: upsert.
-            // If ID exists, we technically overwrite created_at if we pass new time.
-            // Let's check if it exists or use insert logic.
-            // Our SQL is INSERT OR REPLACE.
-            // If we want to preserve created_at, we should fetch it first or separate update query.
-            // For MVP: Set created_at = updated_at = now if new. 
-            // If existing, we ideally want to keep old created_at.
             
             val originalCreatedAt = if (id != null) {
                 queries.getById(id).executeAsOneOrNull()?.created_at ?: now
@@ -90,8 +80,8 @@ class NoteRepositoryImpl(
                 now
             }
 
-            queries.insertNote(
-                id = noteId,
+            queries.insertAsset(
+                id = assetId,
                 title = title,
                 content_encrypted = encryptedContent,
                 iv = iv,
@@ -101,7 +91,7 @@ class NoteRepositoryImpl(
         }
     }
 
-    override suspend fun deleteNote(id: String) {
+    override suspend fun deleteAsset(id: String) {
         withContext(Dispatchers.IO) {
             queries.deleteById(id)
         }

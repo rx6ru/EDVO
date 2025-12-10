@@ -7,24 +7,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import org.example.edvo.domain.model.NoteDetail
-import org.example.edvo.domain.model.NoteSummary
-import org.example.edvo.domain.repository.NoteRepository
+import org.example.edvo.domain.model.AssetDetail
+import org.example.edvo.domain.model.AssetSummary
+import org.example.edvo.domain.repository.AssetRepository
 
-sealed class NoteListState {
-    object Loading : NoteListState()
-    data class Success(val notes: List<NoteSummary>) : NoteListState()
-    data class Error(val message: String) : NoteListState()
+sealed class AssetListState {
+    object Loading : AssetListState()
+    data class Success(val assets: List<AssetSummary>) : AssetListState()
+    data class Error(val message: String) : AssetListState()
 }
 
-class NoteViewModel(
-    private val repository: NoteRepository
+class AssetViewModel(
+    private val repository: AssetRepository
 ) : ViewModel() {
 
-    private val _listState = MutableStateFlow<NoteListState>(NoteListState.Loading)
+    private val _listState = MutableStateFlow<AssetListState>(AssetListState.Loading)
     val listState = _listState.asStateFlow()
 
-    private val _detailState = MutableStateFlow<NoteDetail?>(null)
+    private val _detailState = MutableStateFlow<AssetDetail?>(null)
     val detailState = _detailState.asStateFlow()
     
     // Search & Sort
@@ -39,23 +39,23 @@ class NoteViewModel(
     val sortOrder = _sortOrder.asStateFlow()
 
     init {
-        loadNotes()
+        loadAssets()
     }
 
-    private fun loadNotes() {
+    private fun loadAssets() {
         viewModelScope.launch {
             try {
                 combine(
-                    repository.getNotes(),
+                    repository.getAssets(),
                     _searchQuery,
                     _sortOption,
                     _sortOrder
-                ) { notes, query, sortOpt, sortOrd ->
+                ) { assets, query, sortOpt, sortOrd ->
                     // 1. Filter
                     val filtered = if (query.isBlank()) {
-                        notes
+                        assets
                     } else {
-                        notes.filter { it.title.contains(query, ignoreCase = true) }
+                        assets.filter { it.title.contains(query, ignoreCase = true) }
                     }
                     
                     // 2. Sort
@@ -70,11 +70,11 @@ class NoteViewModel(
                     } else {
                         sorted
                     }
-                }.collectLatest { finalNotes ->
-                    _listState.value = NoteListState.Success(finalNotes)
+                }.collectLatest { finalAssets ->
+                    _listState.value = AssetListState.Success(finalAssets)
                 }
             } catch (e: Exception) {
-                _listState.value = NoteListState.Error(e.message ?: "Unknown error")
+                _listState.value = AssetListState.Error(e.message ?: "Unknown error")
             }
         }
     }
@@ -88,19 +88,17 @@ class NoteViewModel(
             // Toggle order
             _sortOrder.value = if (_sortOrder.value == SortOrder.ASCENDING) SortOrder.DESCENDING else SortOrder.ASCENDING
         } else {
-            // New option, default order (Asc for Name, Desc for Dates?)
-            // Prompt says: "clicking them again will switch... represented by up/down arrow"
-            // Let's stick to a sensible default.
+            // New option, default order
             _sortOption.value = option
             _sortOrder.value = if (option == SortOption.NAME) SortOrder.ASCENDING else SortOrder.DESCENDING
         }
     }
 
-    fun loadNoteDetail(id: String) {
+    fun loadAssetDetail(id: String) {
         viewModelScope.launch {
             _detailState.value = null // Reset
-            val note = repository.getNoteById(id)
-            _detailState.value = note
+            val asset = repository.getAssetById(id)
+            _detailState.value = asset
         }
     }
     
@@ -108,17 +106,16 @@ class NoteViewModel(
         _detailState.value = null
     }
 
-    fun saveNote(id: String?, title: String, content: String) {
+    fun saveAsset(id: String?, title: String, content: String) {
         viewModelScope.launch {
-            repository.saveNote(id, title, content)
+            repository.saveAsset(id, title, content)
             // List will auto-update via Flow
         }
     }
 
-    fun deleteNote(id: String) {
+    fun deleteAsset(id: String) {
         viewModelScope.launch {
-            repository.deleteNote(id)
-            // If deleting current detail, clear it?
+            repository.deleteAsset(id)
             if (_detailState.value?.id == id) {
                 _detailState.value = null
             }

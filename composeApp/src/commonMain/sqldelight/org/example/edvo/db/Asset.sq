@@ -1,4 +1,4 @@
-CREATE TABLE Note (
+CREATE TABLE Asset (
     id TEXT NOT NULL PRIMARY KEY,
     title TEXT NOT NULL,
     content_encrypted BLOB NOT NULL,
@@ -8,23 +8,23 @@ CREATE TABLE Note (
 );
 
 selectAll:
-SELECT id, title, created_at, updated_at FROM Note
+SELECT id, title, created_at, updated_at FROM Asset
 ORDER BY updated_at DESC;
 
 selectAllFull:
-SELECT * FROM Note;
+SELECT * FROM Asset;
 
 getById:
-SELECT * FROM Note
+SELECT * FROM Asset
 WHERE id = ?;
 
-insertNote:
-INSERT OR REPLACE INTO Note(id, title, content_encrypted, iv, created_at, updated_at)
+insertAsset:
+INSERT OR REPLACE INTO Asset(id, title, content_encrypted, iv, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?);
 
 deleteById:
-DELETE FROM Note
+DELETE FROM Asset
 WHERE id = ?;
 
 deleteAll:
-DELETE FROM Note;
+DELETE FROM Asset;

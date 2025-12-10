@@ -100,19 +100,15 @@ class AuthRepositoryImpl(
             }
             
             // 2. Snapshot & Decrypt All Data
-            // We need to access NoteQueries. How? 
-            // We need to inject the full database, not just appConfigQueries. 
-            // We can access `database.noteQueries` directly.
-            
-            val noteQueries = database.noteQueries
-            val allNotes = noteQueries.selectAllFull().executeAsList()
+            // We need to access AssetQueries.
+            val assetQueries = database.assetQueries
+            val allAssets = assetQueries.selectAllFull().executeAsList()
             
             // Decrypt to memory
-            val decryptedNotes = allNotes.map { noteEntity ->
-                // Assumption: SQLDelight generates properties as camelCase
-                val plainContent = CryptoManager.decrypt(noteEntity.content_encrypted, oldKey, noteEntity.iv) 
-                    ?: throw IllegalStateException("Failed to decrypt note ${noteEntity.id} with valid old key. Data corruption?")
-                Triple(noteEntity, plainContent, noteEntity.updated_at)
+            val decryptedAssets = allAssets.map { assetEntity ->
+                val plainContent = CryptoManager.decrypt(assetEntity.content_encrypted, oldKey, assetEntity.iv) 
+                    ?: throw IllegalStateException("Failed to decrypt asset ${assetEntity.id} with valid old key. Data corruption?")
+                Triple(assetEntity, plainContent, assetEntity.updated_at)
             }
             
             // 3. Re-Key
@@ -124,7 +120,7 @@ class AuthRepositoryImpl(
             val newTokenEncrypted = CryptoManager.encrypt(KNOWN_VALUE.encodeToByteArray(), newKey, newKvIv)
             
             // 4. Re-Encrypt All Data
-            val reEncryptedNotes = decryptedNotes.map { (entity, plainBytes, updatedAt) ->
+            val reEncryptedAssets = decryptedAssets.map { (entity, plainBytes, updatedAt) ->
                 val newIv = CryptoManager.generateRandomBytes(12)
                 val newCipher = CryptoManager.encrypt(plainBytes, newKey, newIv)
                 // Use Triple(id, newCipher, newIv)
@@ -138,10 +134,10 @@ class AuthRepositoryImpl(
                 queries.insertOrReplace(KEY_VALIDATION_TOKEN, newTokenEncrypted)
                 queries.insertOrReplace(KEY_VALIDATION_IV, newKvIv)
                 
-                // Update Notes
-                reEncryptedNotes.forEachIndexed { index, (id, newCipher, newIv) ->
-                    val originalEntity = decryptedNotes[index].first
-                    noteQueries.insertNote(
+                // Update Assets
+                reEncryptedAssets.forEachIndexed { index, (id, newCipher, newIv) ->
+                    val originalEntity = decryptedAssets[index].first
+                    assetQueries.insertAsset(
                         id = id,
                         title = originalEntity.title,
                         content_encrypted = newCipher,
@@ -164,7 +160,7 @@ class AuthRepositoryImpl(
             // but emptying all content.
             try {
                 database.transaction {
-                    database.noteQueries.deleteAll()
+                    database.assetQueries.deleteAll()
                     queries.deleteAll()
                 }
             } catch (e: Exception) {
@@ -200,15 +196,15 @@ class AuthRepositoryImpl(
             // "Decrypt them using the Current Session Key".
             val sessionKey = SessionManager.getMasterKey() ?: throw IllegalStateException("Unlock vault first")
             
-            // 2. Fetch all notes
-            val allNotes = database.noteQueries.selectAllFull().executeAsList()
+            // 2. Fetch all assets
+            val allAssets = database.assetQueries.selectAllFull().executeAsList()
             
             // 3. Decrypt
-            val plainNotes = allNotes.map { entity ->
+            val plainAssets = allAssets.map { entity ->
                 val plainContent = CryptoManager.decrypt(entity.content_encrypted, sessionKey, entity.iv)
                     ?.decodeToString() ?: ""
                 
-                org.example.edvo.core.backup.BackupNote(
+                org.example.edvo.core.backup.BackupAsset(
                     id = entity.id,
                     title = entity.title,
                     content = plainContent,
@@ -218,7 +214,7 @@ class AuthRepositoryImpl(
             }
             
             // 4. Create and Encrypt Backup
-            org.example.edvo.core.backup.BackupManager.createBackup(password, plainNotes)
+            org.example.edvo.core.backup.BackupManager.createBackup(password, plainAssets)
         }
     }
 
@@ -227,21 +223,21 @@ class AuthRepositoryImpl(
             val sessionKey = SessionManager.getMasterKey() ?: throw IllegalStateException("Unlock vault first")
 
             // 1. Decrypt Backup
-            val notes = org.example.edvo.core.backup.BackupManager.restoreBackup(password, data)
+            val assets = org.example.edvo.core.backup.BackupManager.restoreBackup(password, data)
             
             // 2. Insert (Overwrite)
             database.transaction {
-                notes.forEach { note ->
+                assets.forEach { asset ->
                     val iv = CryptoManager.generateRandomBytes(12)
-                    val contentEncrypted = CryptoManager.encrypt(note.content.encodeToByteArray(), sessionKey, iv)
+                    val contentEncrypted = CryptoManager.encrypt(asset.content.encodeToByteArray(), sessionKey, iv)
                     
-                    database.noteQueries.insertNote(
-                        id = note.id,
-                        title = note.title,
+                    database.assetQueries.insertAsset(
+                        id = asset.id,
+                        title = asset.title,
                         content_encrypted = contentEncrypted,
                         iv = iv,
-                        created_at = note.createdAt,
-                        updated_at = note.updatedAt
+                        created_at = asset.createdAt,
+                        updated_at = asset.updatedAt
                     )
                 }
             }

@@ -68,3 +68,5 @@ dump.db
 # yarn.lock
 # */wasmJs/
 # */browserProductionWebpack/
+
+todo.txt

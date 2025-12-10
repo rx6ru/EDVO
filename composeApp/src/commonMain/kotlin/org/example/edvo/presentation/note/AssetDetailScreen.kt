@@ -15,9 +15,9 @@ import org.example.edvo.presentation.components.SecureTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteDetailScreen(
-    viewModel: NoteViewModel,
-    noteId: String?,
+fun AssetDetailScreen(
+    viewModel: AssetViewModel,
+    assetId: String?,
     initialTitle: String? = null,
     onBack: () -> Unit
 ) {
@@ -28,21 +28,21 @@ fun NoteDetailScreen(
     var content by remember { mutableStateOf("") }
     var isLoaded by remember { mutableStateOf(false) }
 
-    // If existing note, load data
-    LaunchedEffect(noteId) {
-        if (noteId != null) {
-            viewModel.loadNoteDetail(noteId)
+    // If existing asset, load data
+    LaunchedEffect(assetId) {
+        if (assetId != null) {
+            viewModel.loadAssetDetail(assetId)
         } else {
-            isLoaded = true // New note is "loaded" immediately
+            isLoaded = true // New asset is "loaded" immediately
         }
     }
 
     // Observe DB data to populate fields once
-    val noteDetail by viewModel.detailState.collectAsState()
-    LaunchedEffect(noteDetail) {
-        if (noteDetail != null && noteDetail!!.id == noteId && !isLoaded) {
-            title = noteDetail!!.title
-            content = noteDetail!!.content
+    val assetDetail by viewModel.detailState.collectAsState()
+    LaunchedEffect(assetDetail) {
+        if (assetDetail != null && assetDetail!!.id == assetId && !isLoaded) {
+            title = assetDetail!!.title
+            content = assetDetail!!.content
             isLoaded = true
         }
     }
@@ -50,23 +50,23 @@ fun NoteDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (noteId == null) "New Note" else "Edit Note") },
+                title = { Text(if (assetId == null) "New Asset" else "Edit Asset") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    if (noteId != null) {
+                    if (assetId != null) {
                         IconButton(onClick = {
-                            viewModel.deleteNote(noteId)
+                            viewModel.deleteAsset(assetId)
                             onBack()
                         }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
                     }
                     IconButton(onClick = {
-                        viewModel.saveNote(noteId, title, content)
+                        viewModel.saveAsset(assetId, title, content)
                         onBack()
                     }) {
                         Icon(Icons.Default.Save, contentDescription = "Save")
@@ -91,9 +91,9 @@ fun NoteDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Metadata
-                if (noteDetail != null) {
+                if (assetDetail != null) {
                     Text(
-                        text = "LAST MODIFIED: ${org.example.edvo.util.DateUtil.formatFull(noteDetail!!.updatedAt)}",
+                        text = "LAST MODIFIED: ${org.example.edvo.util.DateUtil.formatFull(assetDetail!!.updatedAt)}",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             color = androidx.compose.ui.graphics.Color.Gray

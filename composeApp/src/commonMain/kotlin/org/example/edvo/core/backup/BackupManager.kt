@@ -9,11 +9,12 @@ import org.example.edvo.core.crypto.CryptoManager
 data class BackupData(
     val version: Int = 1,
     val timestamp: Long,
-    val notes: List<BackupNote>
+    val assets: List<BackupAsset> = emptyList(), // Primary for new backups
+    val notes: List<BackupAsset> = emptyList()   // Legacy support for old backups
 )
 
 @Serializable
-data class BackupNote(
+data class BackupAsset(
     val id: String,
     val title: String,
     val content: String,
@@ -25,10 +26,11 @@ object BackupManager {
     // Header to identify our backup files
     private val HEADER = "EDVO_BACKUP_V1".encodeToByteArray()
 
-    fun createBackup(password: String, notes: List<BackupNote>): ByteArray {
+    fun createBackup(password: String, assets: List<BackupAsset>): ByteArray {
         val jsonString = Json.encodeToString(BackupData(
-            timestamp = 0L, // Use system time in real app, stick to 0 or valid long here
-            notes = notes
+            timestamp = 0L, // Use system time in real app
+            assets = assets,
+            notes = emptyList() // Do not write to legacy key
         ))
         
         // Encrypt JSON
@@ -38,14 +40,10 @@ object BackupManager {
         
         val encryptedJson = CryptoManager.encrypt(jsonString.encodeToByteArray(), key, iv)
         
-        // Format: [SALT(32)][IV(12)][CIPHERTEXT]
-        // Actually prompt requested: 
-        // "Prepend the Salt and IV to the file."
-        
         return salt + iv + encryptedJson
     }
     
-    fun restoreBackup(password: String, data: ByteArray): List<BackupNote> {
+    fun restoreBackup(password: String, data: ByteArray): List<BackupAsset> {
         // Parse format
         // SALT = 32 bytes
         // IV = 12 bytes
@@ -60,8 +58,18 @@ object BackupManager {
             ?: throw IllegalArgumentException("Decryption failed. Wrong password or corrupted file.")
             
         val jsonString = decryptedBytes.decodeToString()
-        val backupData = Json.decodeFromString<BackupData>(jsonString)
         
-        return backupData.notes
+        // Relaxed JSON parsing to allow missing keys if needed, though default values handle it.
+        val json = Json { ignoreUnknownKeys = true }
+        val backupData = json.decodeFromString<BackupData>(jsonString)
+        
+        // COMPATIBILITY LOGIC:
+        // If assets list is populated, use it.
+        // If assets is empty but notes is populated, use notes.
+        return if (backupData.assets.isNotEmpty()) {
+            backupData.assets
+        } else {
+            backupData.notes
+        }
     }
 }

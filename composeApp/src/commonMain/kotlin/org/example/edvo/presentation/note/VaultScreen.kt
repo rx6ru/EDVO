@@ -41,8 +41,8 @@ import org.example.edvo.util.DateUtil
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VaultScreen(
-    viewModel: NoteViewModel,
-    onNoteClick: (String, String) -> Unit,
+    viewModel: AssetViewModel,
+    onAssetClick: (String, String) -> Unit,
     onCreateClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLockRequested: () -> Unit
@@ -96,7 +96,7 @@ fun VaultScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        selectedIds.forEach { viewModel.deleteNote(it) }
+                        selectedIds.forEach { viewModel.deleteAsset(it) }
                         selectedIds = emptySet()
                         showDeleteConfirm = false
                     }
@@ -224,22 +224,22 @@ fun VaultScreen(
                 }
         ) {
             when (val s = state) {
-                is NoteListState.Loading -> CircularProgressIndicator(
+                is AssetListState.Loading -> CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
                     color = NeoPaletteV2.Functional.SignalGreen
                 )
-                is NoteListState.Error -> Text(
+                is AssetListState.Error -> Text(
                     "Error: ${s.message}",
                     style = NeoTypographyV2.DataMono().copy(color = NeoPaletteV2.Functional.SignalRed),
                     modifier = Modifier.align(Alignment.Center)
                 )
-                is NoteListState.Success -> {
+                is AssetListState.Success -> {
                     Column {
                         // Search Box
                         NeoInput(
                             value = searchQuery,
                             onValueChange = viewModel::onSearchQueryChange,
-                            label = "SEARCH VAULT",
+                            label = "SEARCH ASSETS",
                             leadingIcon = {
                                 if (isSearchFocused) {
                                     Icon(
@@ -274,23 +274,23 @@ fun VaultScreen(
                         )
 
                         // Data Count Indicator
-                        if (s.notes.isNotEmpty() || searchQuery.isNotBlank()) {
+                        if (s.assets.isNotEmpty() || searchQuery.isNotBlank()) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                                 horizontalArrangement = Arrangement.End
                             ) {
                                 val label = if (searchQuery.isNotBlank()) "MATCHES" else "VAULT"
                                 Text(
-                                    text = "$label: ${s.notes.size}",
+                                    text = "$label: ${s.assets.size}",
                                     style = NeoTypographyV2.DataMono(),
-                                    color = if (searchQuery.isNotBlank() && s.notes.isEmpty()) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.Functional.TextSecondary
+                                    color = if (searchQuery.isNotBlank() && s.assets.isEmpty()) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.Functional.TextSecondary
                                 )
                             }
                         }
 
-                        if (s.notes.isEmpty() && searchQuery.isBlank()) {
+                        if (s.assets.isEmpty() && searchQuery.isBlank()) {
                             EmptyVaultView(mode = EmptyViewMode.NoData)
-                        } else if (s.notes.isEmpty() && searchQuery.isNotBlank()) {
+                        } else if (s.assets.isEmpty() && searchQuery.isNotBlank()) {
                             EmptyVaultView(mode = EmptyViewMode.NoResults)
                         } else {
                             LazyColumn(
@@ -299,26 +299,26 @@ fun VaultScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 items(
-                                    items = s.notes,
+                                    items = s.assets,
                                     key = { it.id }
-                                ) { note ->
-                                    val isSelected = selectedIds.contains(note.id)
+                                ) { asset ->
+                                    val isSelected = selectedIds.contains(asset.id)
 
-                                    AnimatedNoteItem(
+                                    AnimatedAssetItem(
                                         modifier = Modifier.animateItem()
                                     ) {
                                         NeoCard(
                                             isSelected = isSelected,
                                             onClick = {
                                                 if (isSelectionMode) {
-                                                    selectedIds = if (isSelected) selectedIds - note.id else selectedIds + note.id
+                                                    selectedIds = if (isSelected) selectedIds - asset.id else selectedIds + asset.id
                                                 } else {
-                                                    onNoteClick(note.id, note.title)
+                                                    onAssetClick(asset.id, asset.title)
                                                 }
                                             },
                                             onLongClick = {
                                                 // Enter selection mode or toggle
-                                                selectedIds = if (isSelected) selectedIds - note.id else selectedIds + note.id
+                                                selectedIds = if (isSelected) selectedIds - asset.id else selectedIds + asset.id
                                             },
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
@@ -327,7 +327,7 @@ fun VaultScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
-                                                    text = note.title.ifBlank { "Untitled" },
+                                                    text = asset.title.ifBlank { "Untitled" },
                                                     style = MaterialTheme.typography.bodyLarge.copy(
                                                         fontWeight = FontWeight.Bold,
                                                         color = Color.White
@@ -340,7 +340,7 @@ fun VaultScreen(
                                                 Spacer(modifier = Modifier.width(12.dp))
 
                                                 Text(
-                                                    text = DateUtil.formatShort(note.updatedAt),
+                                                    text = DateUtil.formatShort(asset.updatedAt),
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                                                         color = Color.Gray
@@ -365,7 +365,7 @@ fun VaultScreen(
  * Animates opacity and translationY exactly when composed (entering viewport).
  */
 @Composable
-fun AnimatedNoteItem(
+fun AnimatedAssetItem(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
