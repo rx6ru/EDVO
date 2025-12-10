@@ -231,12 +231,7 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("SETTINGS", color = EdvoColor.White, style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = EdvoColor.Background),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = EdvoColor.White)
-                    }
-                }
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = EdvoColor.Background)
             )
         }
     ) { padding ->
@@ -351,6 +346,9 @@ fun SettingsScreen(
                     sliderResetKey++
                 }
             }
+            
+            Spacer(modifier = Modifier.height(88.dp)) // Push content above Bottom Bar
+
 
         }
     }

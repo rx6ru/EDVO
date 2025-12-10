@@ -95,10 +95,41 @@ object CustomIcons {
                 close()
                 
                 // Crossbones (X)
-                moveTo(4f, 4f)
-                lineTo(20f, 20f)
                 moveTo(20f, 4f)
                 lineTo(4f, 20f)
+            }
+        }.build()
+
+    // Geometric Cycle Arrows (Generator)
+    val IconCycle: ImageVector
+        get() = ImageVector.Builder(
+            name = "IconCycle",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).apply {
+            path(
+                stroke = SolidColor(NeoPalette.Primary),
+                strokeLineWidth = 2f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round
+            ) {
+                // Top Arc Arrow
+                moveTo(21f, 12f)
+                arcTo(9f, 9f, 0f, false, true, 12f, 21f)
+                moveTo(21f, 12f)
+                lineTo(21f, 16f)
+                moveTo(21f, 12f)
+                lineTo(17f, 12f)
+                
+                // Bottom Arc Arrow
+                moveTo(3f, 12f)
+                arcTo(9f, 9f, 0f, false, true, 12f, 3f)
+                moveTo(3f, 12f)
+                lineTo(3f, 8f)
+                moveTo(3f, 12f)
+                lineTo(7f, 12f)
             }
         }.build()
 }

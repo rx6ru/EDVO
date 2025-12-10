@@ -44,7 +44,6 @@ fun VaultScreen(
     viewModel: AssetViewModel,
     onAssetClick: (String, String) -> Unit,
     onCreateClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     onLockRequested: () -> Unit
 ) {
     val state by viewModel.listState.collectAsState()
@@ -187,9 +186,6 @@ fun VaultScreen(
                             }
                         }
                         
-                        IconButton(onClick = onSettingsClick) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = NeoPaletteV2.AccentWhite)
-                        }
                         IconButton(onClick = onLockRequested) {
                             Icon(Icons.Default.Lock, contentDescription = "Lock Vault", tint = NeoPaletteV2.Functional.SignalRed)
                         }
@@ -202,7 +198,8 @@ fun VaultScreen(
                 FloatingActionButton(
                     onClick = onCreateClick,
                     containerColor = NeoPaletteV2.AccentWhite,
-                    contentColor = NeoPaletteV2.SurfacePrimary
+                    contentColor = NeoPaletteV2.SurfacePrimary,
+                    modifier = Modifier.padding(bottom = 88.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "New Entry")
                 }
@@ -402,7 +399,7 @@ fun EmptyVaultView(mode: EmptyViewMode) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
+        Icon(                                                              
             CustomIcons.IconGhost,
             contentDescription = "Empty Vault",
             tint = if (mode == EmptyViewMode.NoResults) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.Functional.TextSecondary,
