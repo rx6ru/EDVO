@@ -27,9 +27,16 @@ class NoteViewModel(
     private val _detailState = MutableStateFlow<NoteDetail?>(null)
     val detailState = _detailState.asStateFlow()
     
-    // Search
+    // Search & Sort
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
+    
+    // Sort State
+    private val _sortOption = MutableStateFlow(SortOption.DATE_UPDATED)
+    val sortOption = _sortOption.asStateFlow()
+    
+    private val _sortOrder = MutableStateFlow(SortOrder.DESCENDING)
+    val sortOrder = _sortOrder.asStateFlow()
 
     init {
         loadNotes()
@@ -40,17 +47,31 @@ class NoteViewModel(
             try {
                 combine(
                     repository.getNotes(),
-                    _searchQuery
-                ) { notes, query ->
-                    if (query.isBlank()) {
+                    _searchQuery,
+                    _sortOption,
+                    _sortOrder
+                ) { notes, query, sortOpt, sortOrd ->
+                    // 1. Filter
+                    val filtered = if (query.isBlank()) {
                         notes
                     } else {
-                        // Fuzzy-ish: Case insensitive contains.
-                        // Can be improved to subsequence if needed.
                         notes.filter { it.title.contains(query, ignoreCase = true) }
                     }
-                }.collectLatest { filtered ->
-                    _listState.value = NoteListState.Success(filtered)
+                    
+                    // 2. Sort
+                    val sorted = when (sortOpt) {
+                        SortOption.NAME -> filtered.sortedBy { it.title.lowercase() }
+                        SortOption.DATE_CREATED -> filtered.sortedBy { it.createdAt }
+                        SortOption.DATE_UPDATED -> filtered.sortedBy { it.updatedAt }
+                    }
+                    
+                    if (sortOrd == SortOrder.DESCENDING) {
+                        sorted.reversed()
+                    } else {
+                        sorted
+                    }
+                }.collectLatest { finalNotes ->
+                    _listState.value = NoteListState.Success(finalNotes)
                 }
             } catch (e: Exception) {
                 _listState.value = NoteListState.Error(e.message ?: "Unknown error")
@@ -60,6 +81,19 @@ class NoteViewModel(
     
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+    }
+    
+    fun onSortChange(option: SortOption) {
+        if (_sortOption.value == option) {
+            // Toggle order
+            _sortOrder.value = if (_sortOrder.value == SortOrder.ASCENDING) SortOrder.DESCENDING else SortOrder.ASCENDING
+        } else {
+            // New option, default order (Asc for Name, Desc for Dates?)
+            // Prompt says: "clicking them again will switch... represented by up/down arrow"
+            // Let's stick to a sensible default.
+            _sortOption.value = option
+            _sortOrder.value = if (option == SortOption.NAME) SortOrder.ASCENDING else SortOrder.DESCENDING
+        }
     }
 
     fun loadNoteDetail(id: String) {
@@ -90,4 +124,12 @@ class NoteViewModel(
             }
         }
     }
+}
+
+enum class SortOption {
+    NAME, DATE_CREATED, DATE_UPDATED
+}
+
+enum class SortOrder {
+    ASCENDING, DESCENDING
 }

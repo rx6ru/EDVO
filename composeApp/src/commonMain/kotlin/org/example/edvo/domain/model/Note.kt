@@ -3,6 +3,7 @@ package org.example.edvo.domain.model
 data class NoteSummary(
     val id: String,
     val title: String,
+    val createdAt: Long,
     val updatedAt: Long
 )
 

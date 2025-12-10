@@ -8,7 +8,7 @@ CREATE TABLE Note (
 );
 
 selectAll:
-SELECT id, title, updated_at FROM Note
+SELECT id, title, created_at, updated_at FROM Note
 ORDER BY updated_at DESC;
 
 selectAllFull:

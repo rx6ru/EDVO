@@ -4,16 +4,23 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -42,16 +49,35 @@ fun VaultScreen(
 ) {
     val state by viewModel.listState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val sortOption by viewModel.sortOption.collectAsState()
+    val sortOrder by viewModel.sortOrder.collectAsState()
     val focusManager = LocalFocusManager.current
+    val listState = rememberLazyListState()
     val interactionSource = remember { MutableInteractionSource() }
+
+    // Scroll to top when sort changes
+    LaunchedEffect(sortOption, sortOrder) {
+        listState.scrollToItem(0)
+    }
+
+    var showSortMenu by remember { mutableStateOf(false) }
+
+    // --- Focus State for Search ---
+    var isSearchFocused by remember { mutableStateOf(false) }
 
     // --- State: Multi-Selection ---
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     val isSelectionMode = selectedIds.isNotEmpty()
                                                                   
     // --- Hardware Back Handler ---
-    BackHandler(enabled = isSelectionMode) {
-        selectedIds = emptySet()
+    // Handle both Selection Mode and Search Focus
+    BackHandler(enabled = isSelectionMode || isSearchFocused) {
+        if (isSelectionMode) {
+            selectedIds = emptySet()
+        } else if (isSearchFocused) {
+            focusManager.clearFocus()
+            isSearchFocused = false
+        }
     }
 
     // --- State: Delete Confirmation ---
@@ -113,11 +139,59 @@ fun VaultScreen(
                             Icon(Icons.Default.Delete, contentDescription = "Delete Selected", tint = NeoPaletteV2.Functional.SignalRed)
                         }
                     } else {
+                        // Sort Button & Menu
+                        Box {
+                            IconButton(onClick = { showSortMenu = true }) {
+                                Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = NeoPaletteV2.AccentWhite)
+                            }
+                            DropdownMenu(
+                                expanded = showSortMenu,
+                                onDismissRequest = { showSortMenu = false },
+                                containerColor = EdvoColor.DarkSurface,
+                                modifier = Modifier.border(1.dp, NeoPaletteV2.BorderInactive, RoundedCornerShape(4.dp))
+                            ) {
+                                SortOption.entries.forEach { option ->
+                                    val isActive = sortOption == option
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    option.name.replace("_", " "), 
+                                                    style = NeoTypographyV2.DataMono(),
+                                                    color = if (isActive) NeoPaletteV2.Functional.SignalGreen else NeoPaletteV2.Functional.TextSecondary
+                                                )
+                                                if (isActive) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Icon(
+                                                        if (sortOrder == SortOrder.ASCENDING) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                                        contentDescription = null,
+                                                        tint = NeoPaletteV2.Functional.SignalGreen
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onClick = { 
+                                            viewModel.onSortChange(option)
+                                            // Don't close menu immediately if toggle? No, better UX to close or stay?
+                                            // User might want to toggle order. Let's keep it open?
+                                            // Usually menus close. Let's verify requirement.
+                                            // "clicking them again will switch... represented by up/down arrow"
+                                            // implies interactivity.
+                                            // Let's keep menu open if clicking same option, close if different? 
+                                            // Or close always? standard behavior is close.
+                                            // Let's close for now, user can reopen. It's safer.
+                                            showSortMenu = false 
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        
                         IconButton(onClick = onSettingsClick) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings", tint = NeoPaletteV2.AccentWhite)
                         }
-                        TextButton(onClick = onLockRequested) {
-                            Text("Lock", style = NeoTypographyV2.DataMono().copy(color = NeoPaletteV2.Functional.SignalRed))
+                        IconButton(onClick = onLockRequested) {
+                            Icon(Icons.Default.Lock, contentDescription = "Lock Vault", tint = NeoPaletteV2.Functional.SignalRed)
                         }
                     }
                 }
@@ -167,25 +241,60 @@ fun VaultScreen(
                             onValueChange = viewModel::onSearchQueryChange,
                             label = "SEARCH VAULT",
                             leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search",
-                                    tint = NeoPaletteV2.Functional.TextSecondary
-                                )
+                                if (isSearchFocused) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Close Search",
+                                        tint = NeoPaletteV2.Functional.TextSecondary,
+                                        modifier = Modifier.clickable { focusManager.clearFocus() }
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search",
+                                        tint = NeoPaletteV2.Functional.TextSecondary
+                                    )
+                                }
                             },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear Search",
+                                        tint = NeoPaletteV2.Functional.TextSecondary,
+                                        modifier = Modifier
+                                            .clickable { viewModel.onSearchQueryChange("") }
+                                    )
+                                }
+                            },
+                            onFocusChange = { isSearchFocused = it },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         )
 
-                        if (s.notes.isEmpty() && searchQuery.isBlank()) {
-                            EmptyVaultView()
-                        } else if (s.notes.isEmpty() && searchQuery.isNotBlank()) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("No results found.", style = NeoTypographyV2.DataMono())
+                        // Data Count Indicator
+                        if (s.notes.isNotEmpty() || searchQuery.isNotBlank()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                val label = if (searchQuery.isNotBlank()) "MATCHES" else "VAULT"
+                                Text(
+                                    text = "$label: ${s.notes.size}",
+                                    style = NeoTypographyV2.DataMono(),
+                                    color = if (searchQuery.isNotBlank() && s.notes.isEmpty()) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.Functional.TextSecondary
+                                )
                             }
+                        }
+
+                        if (s.notes.isEmpty() && searchQuery.isBlank()) {
+                            EmptyVaultView(mode = EmptyViewMode.NoData)
+                        } else if (s.notes.isEmpty() && searchQuery.isNotBlank()) {
+                            EmptyVaultView(mode = EmptyViewMode.NoResults)
                         } else {
                             LazyColumn(
+                                state = listState,
                                 contentPadding = PaddingValues(bottom = 120.dp, top = 16.dp, start = 16.dp, end = 16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
@@ -284,8 +393,10 @@ fun AnimatedNoteItem(
     }
 }
 
+enum class EmptyViewMode { NoData, NoResults }
+
 @Composable
-fun EmptyVaultView() {
+fun EmptyVaultView(mode: EmptyViewMode) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -294,22 +405,15 @@ fun EmptyVaultView() {
         Icon(
             CustomIcons.IconGhost,
             contentDescription = "Empty Vault",
-            tint = NeoPaletteV2.Functional.TextSecondary,
+            tint = if (mode == EmptyViewMode.NoResults) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.Functional.TextSecondary,
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "VAULT EMPTY", // Monospace as requested for empty state
-            style = NeoTypographyV2.DataMono().copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified) // Adjust size if needed, or stick to DataMono style
+            if (mode == EmptyViewMode.NoResults) "NO MATCHES" else "VAULT EMPTY", 
+            style = NeoTypographyV2.DataMono().copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified, fontWeight = FontWeight.Bold),
+            color = if (mode == EmptyViewMode.NoResults) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.Functional.TextSecondary
         )
-        HorizontalDivider(
-            modifier = Modifier.width(32.dp).padding(vertical = 16.dp),
-            color = NeoPaletteV2.BorderInactive
-        )
-        Text(
-            "Add your data.",
-            style = NeoTypographyV2.DataMono(),
-            color = NeoPaletteV2.Functional.TextSecondary
-        )
+ 
     }
 }

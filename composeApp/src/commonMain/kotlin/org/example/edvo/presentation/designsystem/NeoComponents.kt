@@ -161,7 +161,8 @@ fun NeoInput(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     isError: Boolean = false,
     onFocusChange: ((Boolean) -> Unit)? = null,
-    leadingIcon: @Composable (() -> Unit)? = null
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
     
@@ -204,9 +205,16 @@ fun NeoInput(
                     Box(modifier = Modifier.weight(1f)) {
                         innerTextField()
                     }
+                    if (trailingIcon != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        trailingIcon()
+                    }
                 }
             },
-            modifier = Modifier.onFocusChanged { isFocused = it.isFocused }
+            modifier = Modifier.onFocusChanged { 
+                isFocused = it.isFocused
+                onFocusChange?.invoke(it.isFocused)
+            }
         )
     }
 }

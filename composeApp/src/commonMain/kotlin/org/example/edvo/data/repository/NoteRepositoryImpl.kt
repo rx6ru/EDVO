@@ -28,6 +28,7 @@ class NoteRepositoryImpl(
                 NoteSummary(
                     id = entity.id,
                     title = entity.title,
+                    createdAt = entity.created_at,
                     updatedAt = entity.updated_at
                 )
             }
