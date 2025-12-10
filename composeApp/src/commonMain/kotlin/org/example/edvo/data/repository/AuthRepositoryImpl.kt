@@ -43,7 +43,12 @@ class AuthRepositoryImpl(
 
     override suspend fun isUserRegistered(): Boolean {
         return withContext(Dispatchers.IO) {
-            queries.selectByKey(KEY_SALT).executeAsOneOrNull() != null
+            val salt = queries.selectByKey(KEY_SALT).executeAsOneOrNull()
+            val token = queries.selectByKey(KEY_VALIDATION_TOKEN).executeAsOneOrNull()
+            val iv = queries.selectByKey(KEY_VALIDATION_IV).executeAsOneOrNull()
+            
+            // Only consider registered if COMPLETE auth record exists
+            salt != null && token != null && iv != null
         }
     }
 
