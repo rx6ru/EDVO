@@ -19,8 +19,10 @@ object NeoPaletteV2 {
     val Canvas = Color(0xFF000000)
     val SurfacePrimary = Color(0xFF0A0A0A)
     val SurfaceSecondary = Color(0xFF111111)
+    val SurfaceMedium = Color(0xFF252525) // Balanced Grey (Not too dark, not too light)
     val BorderInactive = Color(0xFF222222)
     val AccentWhite = Color(0xFFFFFFFF)
+    val DarkSurface = Color(0xFF050505)
     
     object Functional {
         val SignalGreen = Color(0xFF00FF94)
@@ -63,6 +65,32 @@ object NeoTypographyV2 {
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         color = NeoPaletteV2.Functional.TextSecondary
+    )
+
+    @Composable
+    fun Body() = TextStyle(
+        fontFamily = getSpaceMonoFontFamily(),
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        color = NeoPaletteV2.AccentWhite
+    )
+
+    @Composable
+    fun LabelSmall() = TextStyle(
+        fontFamily = getSpaceMonoFontFamily(),
+        fontWeight = FontWeight.Bold,
+        fontSize = 10.sp,
+        letterSpacing = 1.sp,
+        color = NeoPaletteV2.Functional.TextSecondary
+    )
+
+    @Composable
+    fun ButtonText() = TextStyle(
+        fontFamily = getSpaceMonoFontFamily(),
+        fontWeight = FontWeight.Bold,
+        fontSize = 14.sp,
+        letterSpacing = 1.sp,
+        color = NeoPaletteV2.SurfacePrimary
     )
 }
 

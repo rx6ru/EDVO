@@ -6,6 +6,11 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
@@ -64,11 +69,13 @@ fun App() {
                 // We create ViewModels here so they are destroyed on Logout.
                 val assetViewModel = remember { AssetViewModel(assetRepository) }
                 val settingsViewModel = remember { SettingsViewModel(authRepository) }
+                val generatorViewModel = remember { org.example.edvo.presentation.generator.GeneratorViewModel() }
                 
                 AuthenticatedContent(
                     authViewModel = authViewModel, // Passed for resetError if needed
                     assetViewModel = assetViewModel,
                     settingsViewModel = settingsViewModel,
+                    generatorViewModel = generatorViewModel,
                     onLogout = {
                         SessionManager.clearSession()
                         isSessionActive = false
@@ -85,6 +92,7 @@ fun AuthenticatedContent(
     authViewModel: AuthViewModel,
     assetViewModel: AssetViewModel,
     settingsViewModel: SettingsViewModel,
+    generatorViewModel: org.example.edvo.presentation.generator.GeneratorViewModel,
     onLogout: () -> Unit
 ) {
     var currentScreen by remember { mutableStateOf(Screen.ASSET_LIST) }
@@ -143,7 +151,7 @@ fun AuthenticatedContent(
                         userScrollEnabled = true
                     ) { page ->
                         when (page) {
-                            0 -> org.example.edvo.presentation.generator.GeneratorScreen()
+                            0 -> org.example.edvo.presentation.generator.GeneratorScreen(viewModel = generatorViewModel)
                             1 -> VaultScreen(
                                     viewModel = assetViewModel,
                                     onAssetClick = { id, _ -> 
@@ -207,7 +215,9 @@ fun AuthenticatedContent(
                             }
                         }
                     },
-                    modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+                    modifier = Modifier
+                        .align(androidx.compose.ui.Alignment.BottomCenter)
+                        .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
                 )
             }
         }

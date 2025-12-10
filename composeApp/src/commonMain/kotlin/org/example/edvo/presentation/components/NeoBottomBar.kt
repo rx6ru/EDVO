@@ -30,9 +30,9 @@ fun NeoBottomBar(
     
     Box(
         modifier = modifier
-            .padding(bottom = 24.dp)
-            .width(320.dp) // Increased width
-            .height(64.dp)
+            .padding(bottom = 16.dp)
+            .width(280.dp) // Reduced for balance
+            .height(56.dp) // Slightly more compact
             .background(NeoPaletteV2.SurfacePrimary, RoundedCornerShape(32.dp))
             .border(1.dp, NeoPaletteV2.AccentWhite, RoundedCornerShape(32.dp))
             .padding(4.dp) // Padding for the pill to float inside
