@@ -1,6 +1,6 @@
 # EDVO - The Vault
 
-![Version](https://img.shields.io/badge/version-v0.3.0-green) ![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Desktop-blue)
+![Version](https://img.shields.io/badge/version-v0.3.0-green) ![Platform](https://img.shields.io/badge/platform-Android%20-blue)
 
 **EDVO** is a high-security, local-first vault application built with **Kotlin Multiplatform** (Compose Multiplatform). It combines uncompromising privacy with a distinct Neo-Brutalist aesthetic.
 

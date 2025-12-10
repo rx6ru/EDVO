@@ -27,30 +27,47 @@ class SettingsViewModel(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
+    // Keys matching AuthRepositoryImpl
+    private val KEY_SCREENSHOTS = "attr_screenshots"
+    private val KEY_COPY_PASTE = "attr_copy_paste"
+
     private val _state = MutableStateFlow<SettingsState>(SettingsState.Idle)
     val state = _state.asStateFlow()
 
     // Features
-    private val _screenshotsEnabled = MutableStateFlow(false) // Default: Blocked (False means "Enable Screenshot" feature is OFF?? No. "Enable Screenshot" means Allowed.)
-    // Let's stick to prompt: "enable/disbale Screenshot". Default likely Enabled? Or Disabled for security app?
-    // Security app -> Default Disabled (Secure). So screenshotsEnabled = false.
+    private val _screenshotsEnabled = MutableStateFlow(false) 
     val screenshotsEnabled = _screenshotsEnabled.asStateFlow()
     
     private val _copyPasteEnabled = MutableStateFlow(true)
     val copyPasteEnabled = _copyPasteEnabled.asStateFlow()
     
     init {
-        // Enforce default security
-        setScreenProtection(_screenshotsEnabled.value)
+        // Load persisted settings
+        viewModelScope.launch {
+            val screenshotsIdx = authRepository.getFeatureFlag(KEY_SCREENSHOTS, false)
+            val copyPasteIdx = authRepository.getFeatureFlag(KEY_COPY_PASTE, true)
+            
+            _screenshotsEnabled.value = screenshotsIdx
+            _copyPasteEnabled.value = copyPasteIdx
+            
+            // Enforce security
+            setScreenProtection(screenshotsIdx)
+        }
     }
     
     fun toggleScreenshots(enabled: Boolean) {
-        _screenshotsEnabled.value = enabled
-        setScreenProtection(enabled)
+        viewModelScope.launch {
+            authRepository.setFeatureFlag(KEY_SCREENSHOTS, enabled)
+            _screenshotsEnabled.value = enabled
+            setScreenProtection(enabled)
+        }
     }
     
     fun toggleCopyPaste(enabled: Boolean) {
-        _copyPasteEnabled.value = enabled
+        viewModelScope.launch {
+            authRepository.setFeatureFlag(KEY_COPY_PASTE, enabled)
+            _copyPasteEnabled.value = enabled
+        }
     }
 
     fun changePassword(old: String, new: String) {

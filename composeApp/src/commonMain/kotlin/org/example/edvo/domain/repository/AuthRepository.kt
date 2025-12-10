@@ -9,4 +9,8 @@ interface AuthRepository {
     suspend fun verifyPassword(password: String): Boolean
     suspend fun exportBackup(password: String): ByteArray
     suspend fun importBackup(password: String, data: ByteArray)
+
+    // Feature Flags (Settings)
+    suspend fun getFeatureFlag(key: String, defaultValue: Boolean): Boolean
+    suspend fun setFeatureFlag(key: String, enabled: Boolean)
 }

@@ -48,7 +48,7 @@ fun VaultScreen(
     // --- State: Multi-Selection ---
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     val isSelectionMode = selectedIds.isNotEmpty()
-
+                                                                  
     // --- Hardware Back Handler ---
     BackHandler(enabled = isSelectionMode) {
         selectedIds = emptySet()

@@ -35,6 +35,10 @@ class AuthRepositoryImpl(
         private const val KEY_VALIDATION_IV = "validation_iv"
         
         private const val KNOWN_VALUE = "VALID_USER"
+        
+        // Feature Flags
+        const val KEY_FEATURE_SCREENSHOTS = "attr_screenshots"
+        const val KEY_FEATURE_COPY_PASTE = "attr_copy_paste"
     }
 
     override suspend fun isUserRegistered(): Boolean {
@@ -241,6 +245,26 @@ class AuthRepositoryImpl(
                     )
                 }
             }
+        }
+    }
+
+
+    override suspend fun getFeatureFlag(key: String, defaultValue: Boolean): Boolean {
+        return withContext(Dispatchers.IO) {
+            val bytes = queries.selectByKey(key).executeAsOneOrNull()
+            if (bytes != null) {
+                // Stored as single byte: 1 = true, 0 = false
+                bytes[0] == 1.toByte()
+            } else {
+                defaultValue
+            }
+        }
+    }
+
+    override suspend fun setFeatureFlag(key: String, enabled: Boolean) {
+        withContext(Dispatchers.IO) {
+            val bytes = ByteArray(1) { if (enabled) 1 else 0 }
+            queries.insertOrReplace(key, bytes)
         }
     }
 }
