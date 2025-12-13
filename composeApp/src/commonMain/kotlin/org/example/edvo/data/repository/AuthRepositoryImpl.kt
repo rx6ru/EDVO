@@ -268,4 +268,40 @@ class AuthRepositoryImpl(
             queries.insertOrReplace(key, bytes)
         }
     }
+    
+    override suspend fun getFeatureFlagFloat(key: String, defaultValue: Float): Float {
+        return withContext(Dispatchers.IO) {
+            val bytes = queries.selectByKey(key).executeAsOneOrNull()
+            if (bytes != null && bytes.size == 4) {
+                java.nio.ByteBuffer.wrap(bytes).float
+            } else {
+                defaultValue
+            }
+        }
+    }
+    
+    override suspend fun setFeatureFlagFloat(key: String, value: Float) {
+        withContext(Dispatchers.IO) {
+            val bytes = java.nio.ByteBuffer.allocate(4).putFloat(value).array()
+            queries.insertOrReplace(key, bytes)
+        }
+    }
+    
+    override suspend fun getFeatureFlagInt(key: String, defaultValue: Int): Int {
+        return withContext(Dispatchers.IO) {
+            val bytes = queries.selectByKey(key).executeAsOneOrNull()
+            if (bytes != null && bytes.size == 4) {
+                java.nio.ByteBuffer.wrap(bytes).int
+            } else {
+                defaultValue
+            }
+        }
+    }
+    
+    override suspend fun setFeatureFlagInt(key: String, value: Int) {
+        withContext(Dispatchers.IO) {
+            val bytes = java.nio.ByteBuffer.allocate(4).putInt(value).array()
+            queries.insertOrReplace(key, bytes)
+        }
+    }
 }

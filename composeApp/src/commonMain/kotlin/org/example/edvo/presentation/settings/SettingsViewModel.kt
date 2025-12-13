@@ -30,6 +30,13 @@ class SettingsViewModel(
     // Keys matching AuthRepositoryImpl
     private val KEY_SCREENSHOTS = "attr_screenshots"
     private val KEY_COPY_PASTE = "attr_copy_paste"
+    private val KEY_SHAKE_TO_LOCK = "attr_shake_to_lock"
+    
+    // Shake Config Keys
+    private val KEY_SHAKE_G_FORCE = "shake_g_force"
+    private val KEY_SHAKE_COUNT = "shake_count"
+    private val KEY_SHAKE_WINDOW = "shake_window"
+    private val KEY_SHAKE_COOLDOWN = "shake_cooldown"
 
     private val _state = MutableStateFlow<SettingsState>(SettingsState.Idle)
     val state = _state.asStateFlow()
@@ -41,17 +48,77 @@ class SettingsViewModel(
     private val _copyPasteEnabled = MutableStateFlow(true)
     val copyPasteEnabled = _copyPasteEnabled.asStateFlow()
     
+    private val _shakeToLockEnabled = MutableStateFlow(false)
+    val shakeToLockEnabled = _shakeToLockEnabled.asStateFlow()
+    
+    // Shake Configuration
+    private val _shakeConfig = MutableStateFlow(org.example.edvo.core.sensor.ShakeConfig.Default)
+    val shakeConfig = _shakeConfig.asStateFlow()
+    
     init {
         // Load persisted settings
         viewModelScope.launch {
             val screenshotsIdx = authRepository.getFeatureFlag(KEY_SCREENSHOTS, false)
             val copyPasteIdx = authRepository.getFeatureFlag(KEY_COPY_PASTE, true)
+            val shakeToLockIdx = authRepository.getFeatureFlag(KEY_SHAKE_TO_LOCK, false)
             
             _screenshotsEnabled.value = screenshotsIdx
             _copyPasteEnabled.value = copyPasteIdx
+            _shakeToLockEnabled.value = shakeToLockIdx
+            
+            // Load shake config
+            loadShakeConfig()
             
             // Enforce security
             setScreenProtection(screenshotsIdx)
+        }
+    }
+    
+    private suspend fun loadShakeConfig() {
+        val gForce = authRepository.getFeatureFlagFloat(KEY_SHAKE_G_FORCE, org.example.edvo.core.sensor.ShakeConfig.DEFAULT_G_FORCE)
+        val count = authRepository.getFeatureFlagInt(KEY_SHAKE_COUNT, org.example.edvo.core.sensor.ShakeConfig.DEFAULT_SHAKE_COUNT)
+        val window = authRepository.getFeatureFlagInt(KEY_SHAKE_WINDOW, org.example.edvo.core.sensor.ShakeConfig.DEFAULT_TIME_WINDOW)
+        val cooldown = authRepository.getFeatureFlagInt(KEY_SHAKE_COOLDOWN, org.example.edvo.core.sensor.ShakeConfig.DEFAULT_COOLDOWN)
+        
+        _shakeConfig.value = org.example.edvo.core.sensor.ShakeConfig(
+            gForceThreshold = gForce,
+            shakeCount = count,
+            timeWindow = window,
+            cooldown = cooldown
+        )
+    }
+    
+    fun updateShakeConfig(
+        gForce: Float? = null,
+        count: Int? = null,
+        window: Int? = null,
+        cooldown: Int? = null
+    ) {
+        viewModelScope.launch {
+            val current = _shakeConfig.value
+            val updated = current.copy(
+                gForceThreshold = gForce ?: current.gForceThreshold,
+                shakeCount = count ?: current.shakeCount,
+                timeWindow = window ?: current.timeWindow,
+                cooldown = cooldown ?: current.cooldown
+            )
+            _shakeConfig.value = updated
+            
+            // Persist
+            gForce?.let { authRepository.setFeatureFlagFloat(KEY_SHAKE_G_FORCE, it) }
+            count?.let { authRepository.setFeatureFlagInt(KEY_SHAKE_COUNT, it) }
+            window?.let { authRepository.setFeatureFlagInt(KEY_SHAKE_WINDOW, it) }
+            cooldown?.let { authRepository.setFeatureFlagInt(KEY_SHAKE_COOLDOWN, it) }
+        }
+    }
+    
+    fun resetShakeConfigToDefaults() {
+        viewModelScope.launch {
+            _shakeConfig.value = org.example.edvo.core.sensor.ShakeConfig.Default
+            authRepository.setFeatureFlagFloat(KEY_SHAKE_G_FORCE, org.example.edvo.core.sensor.ShakeConfig.DEFAULT_G_FORCE)
+            authRepository.setFeatureFlagInt(KEY_SHAKE_COUNT, org.example.edvo.core.sensor.ShakeConfig.DEFAULT_SHAKE_COUNT)
+            authRepository.setFeatureFlagInt(KEY_SHAKE_WINDOW, org.example.edvo.core.sensor.ShakeConfig.DEFAULT_TIME_WINDOW)
+            authRepository.setFeatureFlagInt(KEY_SHAKE_COOLDOWN, org.example.edvo.core.sensor.ShakeConfig.DEFAULT_COOLDOWN)
         }
     }
     
@@ -67,6 +134,13 @@ class SettingsViewModel(
         viewModelScope.launch {
             authRepository.setFeatureFlag(KEY_COPY_PASTE, enabled)
             _copyPasteEnabled.value = enabled
+        }
+    }
+    
+    fun toggleShakeToLock(enabled: Boolean) {
+        viewModelScope.launch {
+            authRepository.setFeatureFlag(KEY_SHAKE_TO_LOCK, enabled)
+            _shakeToLockEnabled.value = enabled
         }
     }
 

@@ -84,10 +84,18 @@ fun GeneratorScreen(
             Spacer(modifier = Modifier.height(76.dp))
 
             // 1. Output Display (Card)
+            val borderColor by androidx.compose.animation.animateColorAsState(
+                targetValue = if (state.mode == GeneratorMode.USERNAME) NeoPaletteV2.AccentWhite else when {
+                    state.strength < 0.4f -> NeoPaletteV2.Functional.SignalRed
+                    state.strength < 0.7f -> Color.Yellow
+                    else -> NeoPaletteV2.Functional.SignalGreen
+                }
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(2.dp, NeoPaletteV2.AccentWhite, RoundedCornerShape(12.dp))
+                    .border(2.dp, borderColor, RoundedCornerShape(12.dp))
                     .background(NeoPaletteV2.SurfaceMedium, RoundedCornerShape(12.dp))
                     .padding(15.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -115,35 +123,15 @@ fun GeneratorScreen(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         ),
-                        color = NeoPaletteV2.Functional.SignalGreen,
+                        color = borderColor, // Also tint text for cohesion? Or keep SignalGreen? strict request was border. Let's keep text SignalGreen or match border? 
+                        // "Make the Border of the Output Box glow... This is much more premium"
+                        // Text color usually stays green or white in terminals. Let's match border for now for full effect, or keep green.
+                        // Let's keep text Green to be safe/readable, only border changes.
+                        // Actually, if strength is weak (Red), text being green is confusing.
+                        // Let's match text color to strength too!
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         modifier = Modifier.horizontalScroll(textScroll) 
-                    )
-                }
-            }
-
-            // 2. Strength Line (Separated)
-            if (state.mode != GeneratorMode.USERNAME) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(NeoPaletteV2.SurfaceSecondary)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(state.strength)
-                            .background(
-                                when {
-                                    state.strength < 0.4f -> NeoPaletteV2.Functional.SignalRed
-                                    state.strength < 0.7f -> Color.Yellow
-                                    else -> NeoPaletteV2.Functional.SignalGreen
-                                }
-                            )
                     )
                 }
             }
@@ -289,8 +277,8 @@ fun PasswordConfig(state: GeneratorState, viewModel: GeneratorViewModel) {
         label = "Length: ${state.pwLength}", 
         min = 6f, max = 64f, 
         value = state.pwLength.toFloat(),
-        onValueChange = { viewModel.updatePasswordConfig(length = it.toInt(), regenerate = false) },
-        onValueChangeFinished = { viewModel.generate() }
+        onValueChange = { viewModel.updatePasswordConfig(length = it.toInt(), regenerate = true) }
+        // No onValueChangeFinished - we generate in real-time
     )
 
     ConfigSwitch("Uppercase (A-Z)", state.pwUpper) { viewModel.updatePasswordConfig(upper = it) }

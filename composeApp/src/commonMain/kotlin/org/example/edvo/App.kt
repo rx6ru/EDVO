@@ -32,7 +32,7 @@ import androidx.compose.ui.platform.LocalTextToolbar
 import org.example.edvo.presentation.components.util.EmptyTextToolbar
 
 enum class Screen {
-    AUTH, GENERATOR, ASSET_LIST, ASSET_DETAIL, SETTINGS, CHANGE_PASSWORD
+    AUTH, GENERATOR, ASSET_LIST, ASSET_DETAIL, SETTINGS, CHANGE_PASSWORD, FEATURES, SHAKE_CONFIG
 }
 
 @Composable
@@ -56,32 +56,34 @@ fun App() {
         var isSessionActive by remember { mutableStateOf(false) }
 
         Box(modifier = Modifier.fillMaxSize()) {
-            if (!isSessionActive) {
-                // AUTH SCREEN (Guard)
-                AuthScreen(
-                    viewModel = authViewModel,
-                    onUnlockSuccess = { isSessionActive = true }
-                )
-            } else {
-                // AUTHENTICATED SESSION SCOPE
-                // Any state created here is destroyed when isSessionActive becomes false.
-                
-                // We create ViewModels here so they are destroyed on Logout.
-                val assetViewModel = remember { AssetViewModel(assetRepository) }
-                val settingsViewModel = remember { SettingsViewModel(authRepository) }
-                val generatorViewModel = remember { org.example.edvo.presentation.generator.GeneratorViewModel() }
-                
-                AuthenticatedContent(
-                    authViewModel = authViewModel, // Passed for resetError if needed
-                    assetViewModel = assetViewModel,
-                    settingsViewModel = settingsViewModel,
-                    generatorViewModel = generatorViewModel,
-                    onLogout = {
-                        SessionManager.clearSession()
-                        isSessionActive = false
-                        authViewModel.resetError()
-                    }
-                )
+            androidx.compose.animation.Crossfade(targetState = isSessionActive) { active ->
+                if (!active) {
+                    // AUTH SCREEN (Guard)
+                    AuthScreen(
+                        viewModel = authViewModel,
+                        onUnlockSuccess = { isSessionActive = true }
+                    )
+                } else {
+                    // AUTHENTICATED SESSION SCOPE
+                    // Any state created here is destroyed when isSessionActive becomes false.
+                    
+                    // We create ViewModels here so they are destroyed on Logout.
+                    val assetViewModel = remember { AssetViewModel(assetRepository) }
+                    val settingsViewModel = remember { SettingsViewModel(authRepository) }
+                    val generatorViewModel = remember { org.example.edvo.presentation.generator.GeneratorViewModel() }
+                    
+                    AuthenticatedContent(
+                        authViewModel = authViewModel, // Passed for resetError if needed
+                        assetViewModel = assetViewModel,
+                        settingsViewModel = settingsViewModel,
+                        generatorViewModel = generatorViewModel,
+                        onLogout = {
+                            SessionManager.clearSession()
+                            isSessionActive = false
+                            authViewModel.resetError()
+                        }
+                    )
+                }
             }
         }
     }
@@ -100,6 +102,41 @@ fun AuthenticatedContent(
     var selectedPage by remember { mutableStateOf(1) } // Default to Vault (1)
 
     val copyPasteEnabled by settingsViewModel.copyPasteEnabled.collectAsState()
+    val shakeToLockEnabled by settingsViewModel.shakeToLockEnabled.collectAsState()
+    val shakeConfig by settingsViewModel.shakeConfig.collectAsState()
+    
+    // Sync shake config to DI so ShakeDetector can access it
+    LaunchedEffect(shakeConfig) {
+        DependencyInjection.shakeConfig = shakeConfig
+        
+        // Restart detector with new config if enabled
+        if (shakeToLockEnabled) {
+            DependencyInjection.shakeDetector?.stopListening()
+            DependencyInjection.shakeDetector?.startListening {
+                onLogout()
+            }
+        }
+    }
+    
+    // Shake to Lock Integration
+    LaunchedEffect(shakeToLockEnabled) {
+        val detector = DependencyInjection.shakeDetector
+        if (shakeToLockEnabled && detector != null) {
+            detector.startListening {
+                // Trigger lock on main thread
+                onLogout()
+            }
+        } else {
+            detector?.stopListening()
+        }
+    }
+    
+    // Cleanup on dispose
+    DisposableEffect(Unit) {
+        onDispose {
+            DependencyInjection.shakeDetector?.stopListening()
+        }
+    }
     
     val localTextToolbar = LocalTextToolbar.current
     val emptyTextToolbar = remember { EmptyTextToolbar }
@@ -170,6 +207,7 @@ fun AuthenticatedContent(
                                     onBack = { currentScreen = Screen.ASSET_LIST },
                                     onChangePasswordClick = { currentScreen = Screen.CHANGE_PASSWORD },
                                     onBackupClick = { },
+                                    onFeaturesClick = { currentScreen = Screen.FEATURES },
                                     onWipeSuccess = { 
                                         onLogout()
                                         // Reset state is handled by destruction
@@ -186,6 +224,7 @@ fun AuthenticatedContent(
                         Screen.ASSET_DETAIL -> {
                             AssetDetailScreen(
                                 viewModel = assetViewModel,
+                                generatorViewModel = generatorViewModel,
                                 assetId = selectedAssetId,
                                 onBack = { currentScreen = Screen.ASSET_LIST }
                             )
@@ -195,6 +234,19 @@ fun AuthenticatedContent(
                                 viewModel = settingsViewModel,
                                 onBack = { currentScreen = Screen.SETTINGS },
                                 onLogoutRequired = onLogout
+                            )
+                        }
+                        Screen.FEATURES -> {
+                            org.example.edvo.presentation.settings.FeaturesScreen(
+                                viewModel = settingsViewModel,
+                                onBack = { currentScreen = Screen.SETTINGS },
+                                onShakeConfigClick = { currentScreen = Screen.SHAKE_CONFIG }
+                            )
+                        }
+                        Screen.SHAKE_CONFIG -> {
+                            org.example.edvo.presentation.settings.ShakeSensitivityScreen(
+                                viewModel = settingsViewModel,
+                                onBack = { currentScreen = Screen.FEATURES }
                             )
                         }
                         else -> {} 
@@ -233,4 +285,11 @@ class NoOpClipboardManager : androidx.compose.ui.platform.ClipboardManager {
 object DependencyInjection {
     var database: org.example.edvo.db.EdvoDatabase? = null
     var driverFactory: org.example.edvo.db.DatabaseDriverFactory? = null
+    
+    // Shake Detection (platform-specific)
+    var shakeDetector: org.example.edvo.core.sensor.ShakeDetector? = null
+    var onShakeLock: (() -> Unit)? = null
+    
+    // Shake Configuration (dynamic, updated from SettingsViewModel)
+    var shakeConfig: org.example.edvo.core.sensor.ShakeConfig? = null
 }

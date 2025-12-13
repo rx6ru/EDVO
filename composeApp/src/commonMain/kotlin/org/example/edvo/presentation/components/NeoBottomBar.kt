@@ -28,6 +28,8 @@ fun NeoBottomBar(
 ) {
     val selectedIndex = items.indexOf(selectedItem).takeIf { it != -1 } ?: 1
     
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
     Box(
         modifier = modifier
             .padding(bottom = 16.dp)
@@ -72,7 +74,10 @@ fun NeoBottomBar(
                             .clickable(
                                 interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                                 indication = null,
-                                onClick = { onItemSelect(item) }
+                                onClick = { 
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                    onItemSelect(item) 
+                                }
                             ),
                         contentAlignment = Alignment.Center
                     ) {

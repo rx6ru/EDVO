@@ -29,6 +29,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onChangePasswordClick: () -> Unit,
     onBackupClick: () -> Unit,
+    onFeaturesClick: () -> Unit,
     onWipeSuccess: () -> Unit,
     viewModel: SettingsViewModel,
     state: SettingsState
@@ -253,64 +254,13 @@ fun SettingsScreen(
                 }
             }
             
-            // Features Section
+            // Features Section - Now links to dedicated screen
             Text("FEATURES", style = MaterialTheme.typography.titleSmall, color = EdvoColor.LightGray)
             
-            EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Screenshots", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
-                            Text(
-                                if (screenshotsEnabled) "Allowed" else "Blocked (Secure)", 
-                                style = MaterialTheme.typography.bodySmall, 
-                                color = if (screenshotsEnabled) EdvoColor.ErrorRed else EdvoColor.Primary
-                            )
-                        }
-                        Switch(
-                            checked = screenshotsEnabled,
-                            onCheckedChange = { viewModel.toggleScreenshots(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = NeoPaletteV2.Functional.SignalGreen,
-                                uncheckedThumbColor = EdvoColor.LightGray,
-                                uncheckedTrackColor = EdvoColor.Surface,
-                                uncheckedBorderColor = EdvoColor.LightGray
-                            )
-                        )
-                    }
-                    
-                    HorizontalDivider(color = EdvoColor.Background)
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Clipboard (Copy/Paste)", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
-                            Text(
-                                if (copyPasteEnabled) "Enabled" else "Disabled", 
-                                style = MaterialTheme.typography.bodySmall, 
-                                color = EdvoColor.LightGray
-                            )
-                        }
-                        Switch(
-                            checked = copyPasteEnabled,
-                            onCheckedChange = { viewModel.toggleCopyPaste(it) },
-                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = NeoPaletteV2.Functional.SignalGreen,
-                                uncheckedThumbColor = EdvoColor.LightGray,
-                                uncheckedTrackColor = EdvoColor.Surface,
-                                uncheckedBorderColor = EdvoColor.LightGray
-                            )
-                        )
-                    }
+            EdvoCard(onClick = onFeaturesClick, modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Text("Features & Security", style = MaterialTheme.typography.titleMedium, color = EdvoColor.White)
+                    Text("Screenshots, Clipboard, Shake to Lock", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
                 }
             }
             

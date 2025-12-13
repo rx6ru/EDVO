@@ -13,4 +13,10 @@ interface AuthRepository {
     // Feature Flags (Settings)
     suspend fun getFeatureFlag(key: String, defaultValue: Boolean): Boolean
     suspend fun setFeatureFlag(key: String, enabled: Boolean)
+    
+    // Numeric Feature Flags (for shake config, etc.)
+    suspend fun getFeatureFlagFloat(key: String, defaultValue: Float): Float
+    suspend fun setFeatureFlagFloat(key: String, value: Float)
+    suspend fun getFeatureFlagInt(key: String, defaultValue: Int): Int
+    suspend fun setFeatureFlagInt(key: String, value: Int)
 }

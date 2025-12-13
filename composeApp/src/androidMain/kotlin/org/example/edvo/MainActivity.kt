@@ -19,6 +19,9 @@ class MainActivity : ComponentActivity() {
         org.example.edvo.DependencyInjection.driverFactory = factory
         val driver = factory.createDriver()
         org.example.edvo.DependencyInjection.database = org.example.edvo.db.EdvoDatabase(driver)
+        
+        // Initialize Shake Detector
+        org.example.edvo.DependencyInjection.shakeDetector = org.example.edvo.core.sensor.ShakeDetector(this)
 
         setContent {
             App()

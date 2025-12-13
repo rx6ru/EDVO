@@ -17,6 +17,7 @@ import org.example.edvo.presentation.components.SecureTextField
 @Composable
 fun AssetDetailScreen(
     viewModel: AssetViewModel,
+    generatorViewModel: org.example.edvo.presentation.generator.GeneratorViewModel,
     assetId: String?,
     initialTitle: String? = null,
     onBack: () -> Unit
@@ -47,69 +48,88 @@ fun AssetDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(if (assetId == null) "New Asset" else "Edit Asset") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (assetId != null) {
+    // State for Generator Sheet
+    var showGeneratorSheet by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(if (assetId == null) "New Asset" else "Edit Asset") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        if (assetId != null) {
+                            IconButton(onClick = {
+                                viewModel.deleteAsset(assetId)
+                                onBack()
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            }
+                        }
                         IconButton(onClick = {
-                            viewModel.deleteAsset(assetId)
+                            viewModel.saveAsset(assetId, title, content)
                             onBack()
                         }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            Icon(Icons.Default.Save, contentDescription = "Save")
                         }
                     }
-                    IconButton(onClick = {
-                        viewModel.saveAsset(assetId, title, content)
-                        onBack()
-                    }) {
-                        Icon(Icons.Default.Save, contentDescription = "Save")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        if (!isLoaded) {
-            Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-                CircularProgressIndicator(modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
-            }
-        } else {
-            Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
-                SecureTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title (Visible in List)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Metadata
-                if (assetDetail != null) {
-                    Text(
-                        text = "LAST MODIFIED: ${org.example.edvo.util.DateUtil.formatFull(assetDetail!!.updatedAt)}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            color = androidx.compose.ui.graphics.Color.Gray
-                        )
+            }
+        ) { padding ->
+            if (!isLoaded) {
+                Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+                    CircularProgressIndicator(modifier = Modifier.align(androidx.compose.ui.Alignment.Center))
+                }
+            } else {
+                Column(modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
+                    SecureTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Title (Visible in List)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Metadata
+                    if (assetDetail != null) {
+                        Text(
+                            text = "LAST MODIFIED: ${org.example.edvo.util.DateUtil.formatFull(assetDetail!!.updatedAt)}",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                color = androidx.compose.ui.graphics.Color.Gray
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
+                    SecureTextField(
+                        value = content,
+                        onValueChange = { content = it },
+                        label = { Text("Secure Content") },
+                        modifier = Modifier.fillMaxSize(),
+                        // multiline
+                    )
                 }
-                
-                SecureTextField(
-                    value = content,
-                    onValueChange = { content = it },
-                    label = { Text("Secure Content") },
-                    modifier = Modifier.fillMaxSize(),
-                    // multiline
-                )
             }
+        }
+
+        // --- OVERLAY: Draggable Generator FAB ---
+        org.example.edvo.presentation.components.DraggableGeneratorFAB(
+            onClick = { showGeneratorSheet = true },
+            modifier = Modifier.align(androidx.compose.ui.Alignment.TopStart) // Anchored to box, position handled by internal logic
+        )
+        
+        // --- OVERLAY: Generator Sheet ---
+        if (showGeneratorSheet) {
+            org.example.edvo.presentation.generator.GeneratorBottomSheet(
+                viewModel = generatorViewModel,
+                onDismiss = { showGeneratorSheet = false }
+            )
         }
     }
 }

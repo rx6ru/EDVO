@@ -199,7 +199,7 @@ fun VaultScreen(
                     onClick = onCreateClick,
                     containerColor = NeoPaletteV2.AccentWhite,
                     contentColor = NeoPaletteV2.SurfacePrimary,
-                    modifier = Modifier.padding(bottom = 88.dp)
+                    modifier = Modifier.padding(bottom = 96.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "New Entry")
                 }
