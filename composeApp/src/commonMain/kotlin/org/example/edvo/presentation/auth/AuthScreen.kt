@@ -45,13 +45,23 @@ fun AuthScreen(
     // POSITIVE bias: Push content DOWN toward keyboard (Bottom alignment)
     val rawBias = (imeBottom / maxKeyboardHeight).coerceIn(0f, 1f)
     
-    // Smooth the alignment with light spring (prevents jitter without significant lag)
+    // Direction-aware animation: detect if opening or closing keyboard
+    var previousBias by remember { mutableFloatStateOf(0f) }
+    val isOpening = rawBias > previousBias
+    LaunchedEffect(rawBias) { previousBias = rawBias }
+    
+    // Use different animation specs for opening vs closing
+    val biasAnimSpec = if (isOpening) {
+        // Opening: smooth spring
+        spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+    } else {
+        // Closing: fast snap to center (no bounce/float)
+        tween<Float>(durationMillis = 150, easing = FastOutSlowInEasing)
+    }
+    
     val smoothedBias by animateFloatAsState(
         targetValue = rawBias,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
+        animationSpec = biasAnimSpec,
         label = "alignmentBias"
     )
     val animatedAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = smoothedBias)
@@ -59,8 +69,8 @@ fun AuthScreen(
     // Use raw imeBottom for bottom padding (no smoothing needed)
     val isImeVisible = imeBottom > 0
     
-    // Couple Hero/Spacer transitions to alignment bias (simplified for positive bias)
-    val isCompactMode = rawBias > 0.3f
+    // Couple Hero/Spacer transitions - faster switch when closing
+    val isCompactMode = if (isOpening) rawBias > 0.3f else rawBias > 0.1f
     
     Scaffold(containerColor = NeoPaletteV2.Canvas) { padding ->
         Box(
