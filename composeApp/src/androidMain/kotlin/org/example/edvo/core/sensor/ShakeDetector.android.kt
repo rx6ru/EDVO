@@ -74,6 +74,9 @@ actual class ShakeDetector(private val context: Context) : SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         event ?: return
         
+        // Always read latest config from DI (ensures dynamic updates work)
+        val currentConfig = org.example.edvo.DependencyInjection.shakeConfig ?: config
+        
         val currentTime = System.currentTimeMillis()
         
         // Throttle to prevent overprocessing
@@ -105,9 +108,9 @@ actual class ShakeDetector(private val context: Context) : SensorEventListener {
         }
         
         // Check if this is a shake (using dynamic config)
-        if (gForce > config.gForceThreshold) {
+        if (gForce > currentConfig.gForceThreshold) {
             // Check if we're within the shake window
-            if (currentTime - lastShakeTime < config.timeWindow) {
+            if (currentTime - lastShakeTime < currentConfig.timeWindow) {
                 shakeCount++
             } else {
                 // Too much time passed, reset count
@@ -117,9 +120,9 @@ actual class ShakeDetector(private val context: Context) : SensorEventListener {
             lastShakeTime = currentTime
             
             // Check if shake count threshold reached
-            if (shakeCount >= config.shakeCount) {
+            if (shakeCount >= currentConfig.shakeCount) {
                 // Check cooldown (using lastTriggerTime, not lastUpdateTime)
-                if (currentTime - lastTriggerTime > config.cooldown) {
+                if (currentTime - lastTriggerTime > currentConfig.cooldown) {
                     lastTriggerTime = currentTime
                     shakeCount = 0
                     onShakeCallback?.invoke()

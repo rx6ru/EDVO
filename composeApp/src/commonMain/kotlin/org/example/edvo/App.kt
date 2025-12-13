@@ -152,10 +152,10 @@ fun AuthenticatedContent(
     
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { 3 }, initialPage = 1)
 
-    // Sync Pager -> Screen
-    LaunchedEffect(pagerState.currentPage) {
+    // Sync Pager -> Screen (use settledPage for stable content switching)
+    LaunchedEffect(pagerState.settledPage) {
         if (currentScreen in listOf(Screen.GENERATOR, Screen.ASSET_LIST, Screen.SETTINGS)) {
-             when(pagerState.currentPage) {
+             when(pagerState.settledPage) {
                  0 -> currentScreen = Screen.GENERATOR
                  1 -> currentScreen = Screen.ASSET_LIST
                  2 -> currentScreen = Screen.SETTINGS
@@ -163,14 +163,10 @@ fun AuthenticatedContent(
         }
     }
     
-    // Reverse sync removed to prevent lag. Navigation drives Pager directly.
-
-    val currentNavItem = when (currentScreen) {
-        Screen.GENERATOR -> navItems[0]
-        Screen.ASSET_LIST -> navItems[1]
-        Screen.SETTINGS -> navItems[2]
-        else -> navItems[1]
-    }
+    // Bar indicator follows currentPage for immediate visual feedback during swipe
+    // This is decoupled from currentScreen so partial swipes look smooth
+    val barSelectedIndex = pagerState.currentPage.coerceIn(0, 2)
+    val currentNavItem = navItems.getOrElse(barSelectedIndex) { navItems[1] }
     
     val showBottomBar = currentScreen in listOf(Screen.GENERATOR, Screen.ASSET_LIST, Screen.SETTINGS)
     val coroutineScope = rememberCoroutineScope()

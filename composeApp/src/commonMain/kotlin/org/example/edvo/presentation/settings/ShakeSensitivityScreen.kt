@@ -54,7 +54,7 @@ fun ShakeSensitivityScreen(
                 valueLabel = "${String.format("%.1f", config.gForceThreshold)}g",
                 minValue = ShakeConfig.MIN_G_FORCE,
                 maxValue = ShakeConfig.MAX_G_FORCE,
-                steps = 24, // 0.1 increments
+                steps = 49, // 0.1 increments for 1.0-6.0 range
                 onValueChange = { viewModel.updateShakeConfig(gForce = it) },
                 leftLabel = "Lighter",
                 rightLabel = "Harder"
@@ -82,7 +82,7 @@ fun ShakeSensitivityScreen(
                 valueLabel = "${config.timeWindow}ms",
                 minValue = ShakeConfig.MIN_TIME_WINDOW.toFloat(),
                 maxValue = ShakeConfig.MAX_TIME_WINDOW.toFloat(),
-                steps = 7, // 100ms increments
+                steps = 17, // 100ms increments for 200-2000 range
                 onValueChange = { viewModel.updateShakeConfig(window = it.roundToInt()) },
                 leftLabel = "Faster",
                 rightLabel = "Slower"
@@ -96,7 +96,7 @@ fun ShakeSensitivityScreen(
                 valueLabel = "${config.cooldown / 1000.0}s",
                 minValue = ShakeConfig.MIN_COOLDOWN.toFloat(),
                 maxValue = ShakeConfig.MAX_COOLDOWN.toFloat(),
-                steps = 8, // 500ms increments
+                steps = 19, // 500ms increments for 200-10000 range
                 onValueChange = { viewModel.updateShakeConfig(cooldown = it.roundToInt()) },
                 leftLabel = "Shorter",
                 rightLabel = "Longer"
