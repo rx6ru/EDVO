@@ -1,6 +1,7 @@
 package org.example.edvo.presentation.auth
 
 import androidx.compose.animation.core.*
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -38,21 +39,21 @@ fun AuthScreen(
     // Derive alignment from actual IME height - syncs with system keyboard animation
     val density = androidx.compose.ui.platform.LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
-    // Normalize to 0-1 range (1 = fully bottom, 0 = center)
-    val maxKeyboardHeight = with(density) { 300.dp.toPx() }
+
+    val maxKeyboardHeight = with(density) { 100.dp.toPx() }
+    
+    // POSITIVE bias: Push content DOWN toward keyboard (Bottom alignment)
     val rawBias = (imeBottom / maxKeyboardHeight).coerceIn(0f, 1f)
     
-    // Smooth the bias to eliminate jitter from system IME insets
-    val smoothedBias by animateFloatAsState(
-        targetValue = rawBias,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
-        label = "smoothedBias"
-    )
-    val animatedAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = smoothedBias)
+    // NO SMOOTHING: Follow keyboard 1:1 to prevent lag/glitch
+    val animatedAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = rawBias)
     
     // Use raw imeBottom for bottom padding (no smoothing needed)
     val isImeVisible = imeBottom > 0
-
+    
+    // Couple Hero/Spacer transitions to alignment bias (simplified for positive bias)
+    val isCompactMode = rawBias > 0.3f
+    
     Scaffold(containerColor = NeoPaletteV2.Canvas) { padding ->
         Box(
             modifier = Modifier
@@ -68,28 +69,24 @@ fun AuthScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Hero Element
-                Image(
-                    painter = painterResource(Res.drawable.edvo_base_logo),
-                    contentDescription = "EDVO Logo",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .graphicsLayer {
-                            scaleX = pulseScale
-                            scaleY = pulseScale
-                        }
+                // Animated Hero Element (coupled to alignment bias, not boolean)
+                AuthHero(isCompact = isCompactMode, pulseScale = pulseScale)
+                
+                // Dynamic Spacer: Shrink gap when keyboard is sufficiently open
+                val spacerHeight by animateDpAsState(
+                    targetValue = if (isCompactMode) 16.dp else 48.dp,
+                    animationSpec = tween(durationMillis = 300)
                 )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("EDVO", style = NeoTypographyV2.Header().copy(fontSize = 32.sp))
-                
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(spacerHeight))
 
                 // Content Views
                 when (val s = state) {
                     is AuthState.Loading -> CircularProgressIndicator(color = NeoPaletteV2.Functional.SignalGreen)
-                    is AuthState.SetupRequired -> SetupView(viewModel)
-                    is AuthState.Locked -> LockedView(onUnlock = { pwd -> viewModel.login(pwd) })
+                    is AuthState.SetupRequired -> SetupView(viewModel, isCompactMode)
+                    is AuthState.Locked -> LockedView(
+                        onUnlock = { pwd -> viewModel.login(pwd) },
+                        isCompact = isCompactMode
+                    )
                     is AuthState.Error -> {
                         Text(
                             "Error: ${s.message}", 
@@ -109,11 +106,25 @@ fun AuthScreen(
     }
 }
 
+// Focus tracking for per-field layout optimization
+private enum class FocusedField { NONE, MASTER, CONFIRM }
+
 @Composable
-private fun SetupView(viewModel: AuthViewModel) {
+private fun SetupView(viewModel: AuthViewModel, isCompact: Boolean) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf<String?>(null) }
+    var focusedField by remember { mutableStateOf(FocusedField.NONE) }
+    
+    // Focus-aware button spacing:
+    // - CONFIRM focused: Nothing below, hug the button close (8dp)
+    // - MASTER focused: Confirm field below, use normal spacing (16dp)
+    // - Not compact: Use default spacing (32dp)
+    val buttonSpacing = when {
+        !isCompact -> 32.dp
+        focusedField == FocusedField.CONFIRM -> 8.dp  // Tight!
+        else -> 16.dp
+    }
     
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text("Create Master Password", style = NeoTypographyV2.Header())
@@ -125,7 +136,9 @@ private fun SetupView(viewModel: AuthViewModel) {
             onValueChange = { password = it; errorText = null },
             label = "Master Password",
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { if (it.isFocused) focusedField = FocusedField.MASTER }
         )
         Spacer(modifier = Modifier.height(16.dp))
         NeoInput(
@@ -133,7 +146,9 @@ private fun SetupView(viewModel: AuthViewModel) {
             onValueChange = { confirmPassword = it; errorText = null },
             label = "Confirm Password",
             visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { if (it.isFocused) focusedField = FocusedField.CONFIRM }
         )
         
         if (errorText != null) {
@@ -141,7 +156,7 @@ private fun SetupView(viewModel: AuthViewModel) {
             Text(errorText!!, style = NeoTypographyV2.DataMono().copy(color = NeoPaletteV2.Functional.SignalRed))
         }
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(buttonSpacing))
         SmartButton(
             text = "Set Password", 
             onClick = {
@@ -160,17 +175,20 @@ private fun SetupView(viewModel: AuthViewModel) {
 
 @Composable
 private fun LockedView(
-    onUnlock: (String) -> Unit
+    onUnlock: (String) -> Unit,
+    isCompact: Boolean
 ) {
     var password by remember { mutableStateOf("") }
+    
+    // Dynamic button spacing: tighter when keyboard is open
+    val buttonSpacing = if (isCompact) 16.dp else 32.dp
 
-    // No local scroll/padding needed - handled by parent
     Column(
         horizontalAlignment = Alignment.CenterHorizontally, 
         modifier = Modifier.fillMaxWidth()
     ) {
         Text("Welcome Back", style = NeoTypographyV2.Header())
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(if (isCompact) 16.dp else 32.dp))
         
         NeoInput(
             value = password,
@@ -180,7 +198,7 @@ private fun LockedView(
             modifier = Modifier.fillMaxWidth()
         )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(buttonSpacing))
         
         SmartButton(
             text = "Unlock",
