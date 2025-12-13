@@ -45,8 +45,16 @@ fun AuthScreen(
     // POSITIVE bias: Push content DOWN toward keyboard (Bottom alignment)
     val rawBias = (imeBottom / maxKeyboardHeight).coerceIn(0f, 1f)
     
-    // NO SMOOTHING: Follow keyboard 1:1 to prevent lag/glitch
-    val animatedAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = rawBias)
+    // Smooth the alignment with light spring (prevents jitter without significant lag)
+    val smoothedBias by animateFloatAsState(
+        targetValue = rawBias,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "alignmentBias"
+    )
+    val animatedAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = smoothedBias)
     
     // Use raw imeBottom for bottom padding (no smoothing needed)
     val isImeVisible = imeBottom > 0
@@ -72,10 +80,13 @@ fun AuthScreen(
                 // Animated Hero Element (coupled to alignment bias, not boolean)
                 AuthHero(isCompact = isCompactMode, pulseScale = pulseScale)
                 
-                // Dynamic Spacer: Shrink gap when keyboard is sufficiently open
+                // Dynamic Spacer: Shrink gap when keyboard is sufficiently open (spring physics)
                 val spacerHeight by animateDpAsState(
                     targetValue = if (isCompactMode) 16.dp else 48.dp,
-                    animationSpec = tween(durationMillis = 300)
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
                 )
                 Spacer(modifier = Modifier.height(spacerHeight))
 

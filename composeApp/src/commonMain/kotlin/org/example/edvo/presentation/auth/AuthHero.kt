@@ -24,7 +24,11 @@ fun AuthHero(
     AnimatedContent(
         targetState = isCompact,
         transitionSpec = {
-            fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+            // Fade + slide + size interpolation for smooth layout transition
+            // Fast fade (150ms) for snappier response
+            (fadeIn(tween(150)) + slideInVertically { -it / 4 }) togetherWith
+            (fadeOut(tween(150)) + slideOutVertically { it / 4 }) using
+            SizeTransform(clip = false) // Animate size change smoothly
         },
         label = "HeroTransition"
     ) { compact ->
