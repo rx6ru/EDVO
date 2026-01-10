@@ -20,6 +20,8 @@ import org.example.edvo.presentation.components.EdvoTextField
 import org.example.edvo.theme.EdvoColor
 import org.example.edvo.presentation.designsystem.NeoSlideToAct
 import org.example.edvo.presentation.designsystem.NeoSuccessOverlay
+import org.example.edvo.presentation.designsystem.NeoFeedbackOverlay
+import org.example.edvo.presentation.designsystem.FeedbackType
 import org.example.edvo.presentation.designsystem.NeoPaletteV2
 import org.example.edvo.presentation.components.util.BackHandler
 
@@ -70,14 +72,27 @@ fun SettingsScreen(
         }
     }
 
-    // Dialogs
-    if (successMessage != null) {
-        NeoSuccessOverlay(
-            message = successMessage!!,
+    // Feedback Overlays for Backup Operations
+    // Feedback Overlays for Backup Operations
+    // Derive current feedback type to ensure smooth transitions (single Dialog)
+    val feedbackType = when {
+        state is SettingsState.Loading -> FeedbackType.Loading
+        successMessage != null -> FeedbackType.Success(successMessage!!)
+        state is SettingsState.Error -> FeedbackType.Error((state as SettingsState.Error).message)
+        else -> null
+    }
+
+    if (feedbackType != null) {
+        NeoFeedbackOverlay(
+            type = feedbackType,
             onDismiss = {
-                successMessage = null
+                if (feedbackType is FeedbackType.Success) {
+                    successMessage = null
+                }
                 viewModel.resetState()
-            }
+            },
+            // Pass autoDismissMs only if it's a Success type
+            autoDismissMs = if (feedbackType is FeedbackType.Success) 2000 else 0
         )
     }
 
@@ -270,7 +285,7 @@ fun SettingsScreen(
             EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text("Version", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
-                    Text("v0.3.0", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
+                    Text("v0.4.0", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
                 }
             }
             

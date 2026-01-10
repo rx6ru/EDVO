@@ -70,3 +70,5 @@ dump.db
 # */browserProductionWebpack/
 
 todo.txt
+
+# .agent/

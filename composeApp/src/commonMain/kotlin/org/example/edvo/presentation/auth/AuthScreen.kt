@@ -55,8 +55,8 @@ fun AuthScreen(
         // Opening: smooth spring
         spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
     } else {
-        // Closing: fast snap to center (no bounce/float)
-        tween<Float>(durationMillis = 150, easing = FastOutSlowInEasing)
+        // Closing: SNAP to match instant imePadding removal (prevents "drop to bottom")
+        snap<Float>()
     }
     
     val smoothedBias by animateFloatAsState(
