@@ -237,9 +237,6 @@ fun VaultScreen(
                 )
                 is AssetListState.Success -> {
                     Column {
-                        // Search Box with Haptics on focus/clear
-                        val haptics = org.example.edvo.presentation.designsystem.NeoHaptics.current()
-                        
                         NeoInput(
                             value = searchQuery,
                             onValueChange = viewModel::onSearchQueryChange,
@@ -251,7 +248,6 @@ fun VaultScreen(
                                         contentDescription = "Close Search",
                                         tint = NeoPaletteV2.Functional.TextSecondary,
                                         modifier = Modifier.clickable { 
-                                            haptics.click()
                                             focusManager.clearFocus() 
                                         }
                                     )
@@ -271,7 +267,6 @@ fun VaultScreen(
                                         tint = NeoPaletteV2.Functional.TextSecondary,
                                         modifier = Modifier
                                             .clickable { 
-                                                haptics.click()
                                                 viewModel.onSearchQueryChange("") 
                                             }
                                     )
@@ -300,12 +295,8 @@ fun VaultScreen(
 
                         if (s.assets.isEmpty() && searchQuery.isBlank()) {
                             // Use the modular EmptyVaultState component
-                            val haptics = org.example.edvo.presentation.designsystem.NeoHaptics.current()
                             org.example.edvo.presentation.note.components.EmptyVaultState(
-                                onCreateClick = {
-                                    haptics.click()
-                                    onCreateClick()
-                                }
+                                onCreateClick = { onCreateClick() }
                             )
                         } else if (s.assets.isEmpty() && searchQuery.isNotBlank()) {
                            // No Results State (Reuse generic or custom text)
@@ -313,7 +304,6 @@ fun VaultScreen(
                                Text("NO MATCHES FOUND", style = NeoTypographyV2.DataMono().copy(color = NeoPaletteV2.Functional.SignalRed))
                            }
                         } else {
-                            val haptics = org.example.edvo.presentation.designsystem.NeoHaptics.current()
                             LazyColumn(
                                 state = listState,
                                 contentPadding = PaddingValues(bottom = 120.dp, top = 16.dp, start = 16.dp, end = 16.dp),
@@ -325,53 +315,53 @@ fun VaultScreen(
                                 ) { asset ->
                                     val isSelected = selectedIds.contains(asset.id)
 
-                                    NeoCard(
-                                        isSelected = isSelected,
-                                        onClick = {
-                                            haptics.click()
-                                            if (isSelectionMode) {
-                                                val newSelection = selectedIds.toMutableSet()
-                                                if (isSelected) newSelection.remove(asset.id) else newSelection.add(asset.id)
-                                                selectedIds = newSelection
-                                            } else {
-                                                onAssetClick(asset.id, asset.title)
-                                            }
-                                        },
-                                        onLongClick = {
-                                            haptics.longPress()
-                                            if (!isSelectionMode) {
-                                                selectedIds = setOf(asset.id)
-                                            } else {
-                                                val newSelection = selectedIds.toMutableSet()
-                                                if (isSelected) newSelection.remove(asset.id) else newSelection.add(asset.id)
-                                                selectedIds = newSelection
-                                            }
-                                        },
-                                        modifier = Modifier.fillMaxWidth().animateItem()
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
+                                    AnimatedAssetItem {
+                                        NeoCard(
+                                            isSelected = isSelected,
+                                            onClick = {
+                                                if (isSelectionMode) {
+                                                    val newSelection = selectedIds.toMutableSet()
+                                                    if (isSelected) newSelection.remove(asset.id) else newSelection.add(asset.id)
+                                                    selectedIds = newSelection
+                                                } else {
+                                                    onAssetClick(asset.id, asset.title)
+                                                }
+                                            },
+                                            onLongClick = {
+                                                if (!isSelectionMode) {
+                                                    selectedIds = setOf(asset.id)
+                                                } else {
+                                                    val newSelection = selectedIds.toMutableSet()
+                                                    if (isSelected) newSelection.remove(asset.id) else newSelection.add(asset.id)
+                                                    selectedIds = newSelection
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().animateItem()
                                         ) {
-                                            Text(
-                                                text = asset.title.ifBlank { "Untitled" },
-                                                style = MaterialTheme.typography.bodyLarge.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color.White
-                                                ),
-                                                modifier = Modifier.weight(1f),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Text(
-                                                text = DateUtil.formatShort(asset.updatedAt),
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                                    color = Color.Gray
-                                                ),
-                                                maxLines = 1
-                                            )
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = asset.title.ifBlank { "Untitled" },
+                                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    ),
+                                                    modifier = Modifier.weight(1f),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text(
+                                                    text = DateUtil.formatShort(asset.updatedAt),
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                        color = Color.Gray
+                                                    ),
+                                                    maxLines = 1
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -385,3 +375,28 @@ fun VaultScreen(
 }
 
 
+/**
+ * Animated wrapper for list items with fade+slide spring entrance.
+ */
+@Composable
+private fun AnimatedAssetItem(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val alphaAnim = remember { Animatable(0f) }
+    val slideAnim = remember { Animatable(24f) } // Start 24px down
+
+    LaunchedEffect(Unit) {
+        launch { alphaAnim.animateTo(1f, spring(stiffness = Spring.StiffnessLow)) }
+        launch { slideAnim.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)) }
+    }
+
+    Box(
+        modifier = modifier.graphicsLayer {
+            alpha = alphaAnim.value
+            translationY = slideAnim.value
+        }
+    ) {
+        content()
+    }
+}

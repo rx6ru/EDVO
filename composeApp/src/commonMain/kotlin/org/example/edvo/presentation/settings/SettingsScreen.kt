@@ -398,7 +398,7 @@ fun SettingsScreen(
             EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text("Version", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
-                    Text("v0.5.0", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
+                    Text("v0.5.1", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
                 }
             }
             

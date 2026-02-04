@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -222,11 +224,20 @@ fun AuthenticatedContent(
                 }
             }
             
-            // === LAYER 2: Detail screens overlay (slide in from right) ===
+            // === LAYER 2: Detail screens overlay (expand from center) ===
             androidx.compose.animation.AnimatedVisibility(
                 visible = currentScreen !in rootScreens,
-                enter = slideInHorizontally { it } + fadeIn(animationSpec = tween(250)),
-                exit = slideOutHorizontally { it } + fadeOut(animationSpec = tween(200)),
+                enter = scaleIn(
+                    initialScale = 0.92f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) + fadeIn(animationSpec = tween(200)),
+                exit = scaleOut(
+                    targetScale = 0.92f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                ) + fadeOut(animationSpec = tween(150)),
                 modifier = Modifier.fillMaxSize()
             ) {
                 // Background scrim + content

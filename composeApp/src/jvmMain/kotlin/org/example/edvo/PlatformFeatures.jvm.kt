@@ -11,7 +11,7 @@ actual fun killApp() {
     exitProcess(0)
 }
 
-actual fun getAppVersion(): String = "0.5.0"
+actual fun getAppVersion(): String = "0.5.1"
 actual fun getUpdateCachePath(): String? = null
 actual fun installApk(path: String) {}
 actual fun saveFile(path: String, data: ByteArray) {

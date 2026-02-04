@@ -21,7 +21,7 @@ actual fun killApp() {
 }
 
 actual fun getAppVersion(): String {
-    return NSBundle.mainBundle.infoDictionary?.get("CFBundleShortVersionString") as? String ?: "0.5.0"
+    return NSBundle.mainBundle.infoDictionary?.get("CFBundleShortVersionString") as? String ?: "0.5.1"
 }
 actual fun getUpdateCachePath(): String? = null
 actual fun installApk(path: String) {}
