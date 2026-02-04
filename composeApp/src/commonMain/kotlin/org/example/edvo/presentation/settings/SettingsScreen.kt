@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.border
 import org.example.edvo.presentation.components.EdvoButton
@@ -362,16 +363,22 @@ fun SettingsScreen(
                     confirmButton = {
                         if (!isDownloading) {
                             if (canAutoUpdate) {
-                                EdvoButton(onClick = { 
-                                    updateAvailable?.let { 
-                                        viewModel.downloadAndInstallUpdate(it, uriHandler::openUri) 
+                                EdvoButton(
+                                    text = "Update Now",
+                                    onClick = { 
+                                        updateAvailable?.let { 
+                                            viewModel.downloadAndInstallUpdate(it, uriHandler::openUri) 
+                                        }
                                     }
-                                }) { Text("Update Now") }
+                                )
                             } else {
-                                EdvoButton(onClick = {
-                                    updateAvailable?.html_url?.let { uriHandler.openUri(it) }
-                                    viewModel.dismissUpdate()
-                                }) { Text("Download") }
+                                EdvoButton(
+                                    text = "Download",
+                                    onClick = {
+                                        updateAvailable?.html_url?.let { uriHandler.openUri(it) }
+                                        viewModel.dismissUpdate()
+                                    }
+                                )
                             }
                         }
                     },
@@ -391,7 +398,7 @@ fun SettingsScreen(
             EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text("Version", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
-                    Text("v0.4.0", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
+                    Text("v0.5.0", style = MaterialTheme.typography.bodySmall, color = EdvoColor.LightGray)
                 }
             }
             

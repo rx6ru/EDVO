@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -38,7 +39,11 @@ import org.example.edvo.presentation.designsystem.*
 import org.example.edvo.theme.EdvoColor
 import org.example.edvo.util.DateUtil
 
-@OptIn(ExperimentalMaterial3Api::class)
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun VaultScreen(
     viewModel: AssetViewModel,
@@ -232,7 +237,9 @@ fun VaultScreen(
                 )
                 is AssetListState.Success -> {
                     Column {
-                        // Search Box
+                        // Search Box with Haptics on focus/clear
+                        val haptics = org.example.edvo.presentation.designsystem.NeoHaptics.current()
+                        
                         NeoInput(
                             value = searchQuery,
                             onValueChange = viewModel::onSearchQueryChange,
@@ -243,7 +250,10 @@ fun VaultScreen(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "Close Search",
                                         tint = NeoPaletteV2.Functional.TextSecondary,
-                                        modifier = Modifier.clickable { focusManager.clearFocus() }
+                                        modifier = Modifier.clickable { 
+                                            haptics.click()
+                                            focusManager.clearFocus() 
+                                        }
                                     )
                                 } else {
                                     Icon(
@@ -260,7 +270,10 @@ fun VaultScreen(
                                         contentDescription = "Clear Search",
                                         tint = NeoPaletteV2.Functional.TextSecondary,
                                         modifier = Modifier
-                                            .clickable { viewModel.onSearchQueryChange("") }
+                                            .clickable { 
+                                                haptics.click()
+                                                viewModel.onSearchQueryChange("") 
+                                            }
                                     )
                                 }
                             },
@@ -286,10 +299,21 @@ fun VaultScreen(
                         }
 
                         if (s.assets.isEmpty() && searchQuery.isBlank()) {
-                            EmptyVaultView(mode = EmptyViewMode.NoData)
+                            // Use the modular EmptyVaultState component
+                            val haptics = org.example.edvo.presentation.designsystem.NeoHaptics.current()
+                            org.example.edvo.presentation.note.components.EmptyVaultState(
+                                onCreateClick = {
+                                    haptics.click()
+                                    onCreateClick()
+                                }
+                            )
                         } else if (s.assets.isEmpty() && searchQuery.isNotBlank()) {
-                            EmptyVaultView(mode = EmptyViewMode.NoResults)
+                           // No Results State (Reuse generic or custom text)
+                           Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                               Text("NO MATCHES FOUND", style = NeoTypographyV2.DataMono().copy(color = NeoPaletteV2.Functional.SignalRed))
+                           }
                         } else {
+                            val haptics = org.example.edvo.presentation.designsystem.NeoHaptics.current()
                             LazyColumn(
                                 state = listState,
                                 contentPadding = PaddingValues(bottom = 120.dp, top = 16.dp, start = 16.dp, end = 16.dp),
@@ -301,50 +325,53 @@ fun VaultScreen(
                                 ) { asset ->
                                     val isSelected = selectedIds.contains(asset.id)
 
-                                    AnimatedAssetItem(
-                                        modifier = Modifier.animateItem()
-                                    ) {
-                                        NeoCard(
-                                            isSelected = isSelected,
-                                            onClick = {
-                                                if (isSelectionMode) {
-                                                    selectedIds = if (isSelected) selectedIds - asset.id else selectedIds + asset.id
-                                                } else {
-                                                    onAssetClick(asset.id, asset.title)
-                                                }
-                                            },
-                                            onLongClick = {
-                                                // Enter selection mode or toggle
-                                                selectedIds = if (isSelected) selectedIds - asset.id else selectedIds + asset.id
-                                            },
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = asset.title.ifBlank { "Untitled" },
-                                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color.White
-                                                    ),
-                                                    modifier = Modifier.weight(1f),
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-
-                                                Spacer(modifier = Modifier.width(12.dp))
-
-                                                Text(
-                                                    text = DateUtil.formatShort(asset.updatedAt),
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                                        color = Color.Gray
-                                                    ),
-                                                    maxLines = 1
-                                                )
+                                    NeoCard(
+                                        isSelected = isSelected,
+                                        onClick = {
+                                            haptics.click()
+                                            if (isSelectionMode) {
+                                                val newSelection = selectedIds.toMutableSet()
+                                                if (isSelected) newSelection.remove(asset.id) else newSelection.add(asset.id)
+                                                selectedIds = newSelection
+                                            } else {
+                                                onAssetClick(asset.id, asset.title)
                                             }
+                                        },
+                                        onLongClick = {
+                                            haptics.longPress()
+                                            if (!isSelectionMode) {
+                                                selectedIds = setOf(asset.id)
+                                            } else {
+                                                val newSelection = selectedIds.toMutableSet()
+                                                if (isSelected) newSelection.remove(asset.id) else newSelection.add(asset.id)
+                                                selectedIds = newSelection
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().animateItem()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = asset.title.ifBlank { "Untitled" },
+                                                style = MaterialTheme.typography.bodyLarge.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                ),
+                                                modifier = Modifier.weight(1f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = DateUtil.formatShort(asset.updatedAt),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                    color = Color.Gray
+                                                ),
+                                                maxLines = 1
+                                            )
                                         }
                                     }
                                 }
@@ -357,60 +384,4 @@ fun VaultScreen(
     }
 }
 
-/**
- * Just-in-Time Entrance Animation Wrapper.
- * Animates opacity and translationY exactly when composed (entering viewport).
- */
-@Composable
-fun AnimatedAssetItem(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    val alphaAnim = remember { Animatable(0f) }
-    val slideAnim = remember { Animatable(50f) } // Start 50px down
 
-    LaunchedEffect(Unit) {
-        // Run animations in parallel
-        // NO DELAY: Immediate trigger on composition
-        launch {
-            alphaAnim.animateTo(1f, spring(stiffness = Spring.StiffnessLow))
-        }
-        launch {
-            slideAnim.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
-        }
-    }
-
-    Box(
-        modifier = modifier.graphicsLayer {
-            alpha = alphaAnim.value
-            translationY = slideAnim.value
-        }
-    ) {
-        content()
-    }
-}
-
-enum class EmptyViewMode { NoData, NoResults }
-
-@Composable
-fun EmptyVaultView(mode: EmptyViewMode) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(                                                              
-            CustomIcons.IconGhost,
-            contentDescription = "Empty Vault",
-            tint = if (mode == EmptyViewMode.NoResults) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.Functional.TextSecondary,
-            modifier = Modifier.size(64.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            if (mode == EmptyViewMode.NoResults) "NO MATCHES" else "VAULT EMPTY", 
-            style = NeoTypographyV2.DataMono().copy(fontSize = androidx.compose.ui.unit.TextUnit.Unspecified, fontWeight = FontWeight.Bold),
-            color = if (mode == EmptyViewMode.NoResults) NeoPaletteV2.Functional.SignalRed else NeoPaletteV2.Functional.TextSecondary
-        )
- 
-    }
-}

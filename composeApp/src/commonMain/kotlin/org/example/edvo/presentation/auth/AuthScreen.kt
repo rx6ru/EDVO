@@ -229,7 +229,7 @@ private fun LockedView(
         // Password field with optional fingerprint button
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Bottom  // Align to bottom so icon matches text field
         ) {
             NeoPasswordInput(
                 value = password,

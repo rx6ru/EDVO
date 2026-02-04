@@ -40,6 +40,7 @@ actual fun killApp() {
     AndroidActivityTracker.currentActivity?.get()?.let { activity ->
         activity.finishAffinity()
         exitProcess(0)
+    }
 }
 
 actual fun getAppVersion(): String = BuildConfig.VERSION_NAME

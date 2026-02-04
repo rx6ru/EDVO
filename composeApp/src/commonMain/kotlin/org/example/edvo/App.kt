@@ -3,6 +3,7 @@ package org.example.edvo
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.example.edvo.core.session.SessionManager
@@ -25,6 +28,7 @@ import org.example.edvo.presentation.note.AssetViewModel
 import org.example.edvo.presentation.settings.ChangePasswordScreen
 import org.example.edvo.presentation.settings.SettingsScreen
 import org.example.edvo.presentation.designsystem.NeoTheme
+import org.example.edvo.presentation.designsystem.NeoPaletteV2
 import org.example.edvo.presentation.note.VaultScreen
 import org.example.edvo.presentation.settings.SettingsViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -163,23 +167,17 @@ fun AuthenticatedContent(
     
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { 3 }, initialPage = 1)
 
-    // Sync Pager -> Screen (use settledPage for stable content switching)
-    LaunchedEffect(pagerState.settledPage) {
-        if (currentScreen in listOf(Screen.GENERATOR, Screen.ASSET_LIST, Screen.SETTINGS)) {
-             when(pagerState.settledPage) {
-                 0 -> currentScreen = Screen.GENERATOR
-                 1 -> currentScreen = Screen.ASSET_LIST
-                 2 -> currentScreen = Screen.SETTINGS
-             }
-        }
-    }
+    // Note: We no longer sync pagerState to currentScreen for root screens.
+    // Pager handles its own animation; currentScreen only tracks detail overlays.
     
     // Bar indicator follows currentPage for immediate visual feedback during swipe
     // This is decoupled from currentScreen so partial swipes look smooth
     val barSelectedIndex = pagerState.currentPage.coerceIn(0, 2)
     val currentNavItem = navItems.getOrElse(barSelectedIndex) { navItems[1] }
     
-    val showBottomBar = currentScreen in listOf(Screen.GENERATOR, Screen.ASSET_LIST, Screen.SETTINGS)
+    // Root screens handled by Pager (no more syncing currentScreen for these)
+    val rootScreens = setOf(Screen.GENERATOR, Screen.ASSET_LIST, Screen.SETTINGS)
+    val showBottomBar = currentScreen in rootScreens
     val coroutineScope = rememberCoroutineScope()
     
     CompositionLocalProvider(
@@ -187,47 +185,57 @@ fun AuthenticatedContent(
         androidx.compose.ui.platform.LocalClipboardManager provides if (copyPasteEnabled) localClipboardManager else noOpClipboardManager
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (currentScreen in listOf(Screen.GENERATOR, Screen.ASSET_LIST, Screen.SETTINGS)) {
-                    androidx.compose.foundation.pager.HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
-                        userScrollEnabled = true
-                    ) { page ->
-                        when (page) {
-                            0 -> org.example.edvo.presentation.generator.GeneratorScreen(viewModel = generatorViewModel)
-                            1 -> VaultScreen(
-                                    viewModel = assetViewModel,
-                                    onAssetClick = { id, _ -> 
-                                        selectedAssetId = id
-                                        currentScreen = Screen.ASSET_DETAIL
-                                    },
-                                    onCreateClick = {
-                                        selectedAssetId = null
-                                        currentScreen = Screen.ASSET_DETAIL
-                                    },
-                                    onLockRequested = onLogout
-                                )
-                            2 -> {
-                                val settingsState by settingsViewModel.state.collectAsState()
-                                SettingsScreen(
-                                    onBack = { currentScreen = Screen.ASSET_LIST },
-                                    onChangePasswordClick = { currentScreen = Screen.CHANGE_PASSWORD },
-                                    onBackupClick = { },
-                                    onFeaturesClick = { currentScreen = Screen.FEATURES },
-                                    onWipeSuccess = { 
-                                        onLogout()
-                                        // Reset state is handled by destruction
-                                    },
-                                    viewModel = settingsViewModel,
-                                    state = settingsState
-                                )
-                            }
-                        }
+            // === LAYER 1: HorizontalPager for root screens (always visible) ===
+            androidx.compose.foundation.pager.HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                userScrollEnabled = currentScreen in rootScreens // Disable swipe when in detail screens
+            ) { page ->
+                when (page) {
+                    0 -> org.example.edvo.presentation.generator.GeneratorScreen(viewModel = generatorViewModel)
+                    1 -> VaultScreen(
+                            viewModel = assetViewModel,
+                            onAssetClick = { id, _ -> 
+                                selectedAssetId = id
+                                currentScreen = Screen.ASSET_DETAIL
+                            },
+                            onCreateClick = {
+                                selectedAssetId = null
+                                currentScreen = Screen.ASSET_DETAIL
+                            },
+                            onLockRequested = onLogout
+                        )
+                    2 -> {
+                        val settingsState by settingsViewModel.state.collectAsState()
+                        SettingsScreen(
+                            onBack = { /* no-op, pager handles */ },
+                            onChangePasswordClick = { currentScreen = Screen.CHANGE_PASSWORD },
+                            onBackupClick = { },
+                            onFeaturesClick = { currentScreen = Screen.FEATURES },
+                            onWipeSuccess = { 
+                                onLogout()
+                            },
+                            viewModel = settingsViewModel,
+                            state = settingsState
+                        )
                     }
-                } else {
-                    // Leaf Screens
-                     when (currentScreen) {
+                }
+            }
+            
+            // === LAYER 2: Detail screens overlay (slide in from right) ===
+            androidx.compose.animation.AnimatedVisibility(
+                visible = currentScreen !in rootScreens,
+                enter = slideInHorizontally { it } + fadeIn(animationSpec = tween(250)),
+                exit = slideOutHorizontally { it } + fadeOut(animationSpec = tween(200)),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Background scrim + content
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(NeoPaletteV2.Canvas)  // Solid background for overlay
+                ) {
+                    when (currentScreen) {
                         Screen.ASSET_DETAIL -> {
                             AssetDetailScreen(
                                 viewModel = assetViewModel,

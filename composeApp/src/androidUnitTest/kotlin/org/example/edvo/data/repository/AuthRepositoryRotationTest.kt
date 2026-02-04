@@ -48,7 +48,10 @@ class AuthRepositoryRotationTest {
         val assetsBefore = assetRepository.getAssets().first()
         assertTrue(assetsBefore.isNotEmpty())
         
-        val asset1Id = database.assetQueries.selectAll().executeAsList().first().id
+        // Find asset by title (don't rely on order from selectAll)
+        val allAssets = database.assetQueries.selectAll().executeAsList()
+        val asset1 = allAssets.find { it.title == "Note 1" }!!
+        val asset1Id = asset1.id
         val detailBefore = assetRepository.getAssetById(asset1Id)
         assertEquals("Secret Content 1", detailBefore?.content)
 
