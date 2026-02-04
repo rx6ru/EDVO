@@ -82,8 +82,13 @@ kotlin {
             implementation(compose.materialIconsExtended)
             // SQLDelight Coroutines Extension
             implementation(libs.sqldelight.coroutines.extensions)
+            implementation(libs.sqldelight.coroutines.extensions)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.filekit.compose)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -113,6 +118,10 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 4
         versionName = "0.4.0"
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     // --- NEW: Signing Configuration ---

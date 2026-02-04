@@ -42,6 +42,11 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "androidx-biometric" }
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version = "1.8.5" }
 
+ktor-client-core = { module = "io.ktor:ktor-client-core", version = "3.0.1" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version = "3.0.1" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version = "3.0.1" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version = "3.0.1" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }

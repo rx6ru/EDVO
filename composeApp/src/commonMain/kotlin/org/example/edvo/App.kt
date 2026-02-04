@@ -152,11 +152,13 @@ fun AuthenticatedContent(
     val localClipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     val noOpClipboardManager = remember { NoOpClipboardManager() }
 
+    val updateAvailable by settingsViewModel.updateAvailable.collectAsState()
+
     // Navigation Items & Pager
     val navItems = listOf(
         org.example.edvo.presentation.components.NavigationItem("generator", "Generator", org.example.edvo.presentation.designsystem.CustomIcons.IconCycle),
         org.example.edvo.presentation.components.NavigationItem("vault", "Vault", org.example.edvo.presentation.designsystem.CustomIcons.IconVault),
-        org.example.edvo.presentation.components.NavigationItem("settings", "Settings", androidx.compose.material.icons.Icons.Default.Settings)
+        org.example.edvo.presentation.components.NavigationItem("settings", "Settings", androidx.compose.material.icons.Icons.Default.Settings, hasBadge = updateAvailable != null)
     )
     
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { 3 }, initialPage = 1)

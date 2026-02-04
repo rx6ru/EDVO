@@ -8,3 +8,9 @@ expect fun setScreenProtection(enabled: Boolean)
  * Desktop/iOS: exit process or no-op
  */
 expect fun killApp()
+
+expect fun getAppVersion(): String
+
+expect fun getUpdateCachePath(): String?
+expect fun installApk(path: String)
+expect fun saveFile(path: String, data: ByteArray)

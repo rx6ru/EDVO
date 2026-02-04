@@ -284,6 +284,107 @@ fun SettingsScreen(
                 }
             }
             
+            Text("MAINTENANCE", style = MaterialTheme.typography.titleSmall, color = EdvoColor.LightGray)
+            
+            val updateAvailable by viewModel.updateAvailable.collectAsState()
+            val isChecking by viewModel.isCheckingUpdate.collectAsState()
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            
+            EdvoCard(
+                onClick = { viewModel.checkForUpdates() }, 
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                 Row(
+                     modifier = Modifier.fillMaxWidth(),
+                     horizontalArrangement = Arrangement.SpaceBetween,
+                     verticalAlignment = Alignment.CenterVertically
+                 ) {
+                     Column {
+                         Text("Check for Updates", style = MaterialTheme.typography.titleMedium, color = EdvoColor.White)
+                         Text(
+                             if (isChecking) "Checking..." else "Current: v${org.example.edvo.getAppVersion()}", 
+                             style = MaterialTheme.typography.bodySmall, 
+                             color = EdvoColor.LightGray
+                         )
+                     }
+                     if (updateAvailable != null) {
+                         Text("Update!", color = NeoPaletteV2.Functional.SignalGreen, style = MaterialTheme.typography.titleSmall)
+                     }
+                 }
+            }
+            
+            if (updateAvailable != null) {
+                // State for dialog interaction
+                val isDownloading by viewModel.isDownloading.collectAsState()
+                val canAutoUpdate = remember { org.example.edvo.getUpdateCachePath() != null }
+                
+                AlertDialog(
+                    containerColor = EdvoColor.DarkSurface,
+                    titleContentColor = EdvoColor.White,
+                    textContentColor = EdvoColor.LightGray,
+                    onDismissRequest = { 
+                        if (!isDownloading) viewModel.dismissUpdate() 
+                    },
+                    title = { Text(if (isDownloading) "Updating..." else "Update Available") },
+                    text = { 
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (isDownloading) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        color = NeoPaletteV2.Functional.SignalGreen
+                                    )
+                                }
+                                Text(
+                                    "Downloading update...", 
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Note: If prompted, please allow EDVO to install unknown apps from this source.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = EdvoColor.LightGray,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                                )
+                            } else {
+                                Text("Version ${updateAvailable?.tag_name} is available.")
+                                updateAvailable?.body?.let {
+                                    Text(it, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        if (!isDownloading) {
+                            if (canAutoUpdate) {
+                                EdvoButton(onClick = { 
+                                    updateAvailable?.let { 
+                                        viewModel.downloadAndInstallUpdate(it, uriHandler::openUri) 
+                                    }
+                                }) { Text("Update Now") }
+                            } else {
+                                EdvoButton(onClick = {
+                                    updateAvailable?.html_url?.let { uriHandler.openUri(it) }
+                                    viewModel.dismissUpdate()
+                                }) { Text("Download") }
+                            }
+                        }
+                    },
+                    dismissButton = {
+                        if (!isDownloading) {
+                            TextButton(onClick = { viewModel.dismissUpdate() }) { 
+                                Text("Later", color = EdvoColor.LightGray) 
+                            }
+                        }
+                    }
+                )
+            }
+            
             // About Section
             Text("ABOUT", style = MaterialTheme.typography.titleSmall, color = EdvoColor.LightGray)
             

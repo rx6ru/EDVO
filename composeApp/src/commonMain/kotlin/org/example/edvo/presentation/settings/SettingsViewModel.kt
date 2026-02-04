@@ -9,6 +9,11 @@ import kotlinx.coroutines.launch
 import org.example.edvo.domain.repository.AuthRepository
 import io.github.vinceglb.filekit.core.PlatformFile
 import org.example.edvo.setScreenProtection
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import org.example.edvo.getUpdateCachePath
+import org.example.edvo.installApk
+import org.example.edvo.saveFile
 
 sealed class SettingsState {
     object Idle : SettingsState()
@@ -64,6 +69,17 @@ class SettingsViewModel(
     // Shake Configuration
     private val _shakeConfig = MutableStateFlow(org.example.edvo.core.sensor.ShakeConfig.Default)
     val shakeConfig = _shakeConfig.asStateFlow()
+
+    // Update Check
+    private val updateManager = org.example.edvo.core.update.UpdateManager()
+    private val _updateAvailable = MutableStateFlow<org.example.edvo.core.update.GitHubRelease?>(null)
+    val updateAvailable = _updateAvailable.asStateFlow()
+    
+    private val _isCheckingUpdate = MutableStateFlow(false)
+    val isCheckingUpdate = _isCheckingUpdate.asStateFlow()
+    
+    private val _isDownloading = MutableStateFlow(false)
+    val isDownloading = _isDownloading.asStateFlow()
     
     init {
         // Load persisted settings
@@ -83,6 +99,9 @@ class SettingsViewModel(
             
             // Enforce security
             setScreenProtection(screenshotsIdx)
+            
+            // Check for updates
+            checkForUpdates()
         }
     }
     
@@ -282,5 +301,60 @@ class SettingsViewModel(
     
     fun resetState() {
         _state.value = SettingsState.Idle
+    }
+    
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            _isCheckingUpdate.value = true
+            val release = updateManager.checkForUpdates()
+            _updateAvailable.value = release
+            _isCheckingUpdate.value = false
+            
+            if (release == null) {
+                // specific feedback for manual check if needed, or just rely on UI showing "Up to date"
+            }
+        }
+    }
+    
+    fun dismissUpdate() {
+        _updateAvailable.value = null
+    }
+
+    fun downloadAndInstallUpdate(release: org.example.edvo.core.update.GitHubRelease, openUrl: (String) -> Unit) {
+        val cachePath = getUpdateCachePath()
+        if (cachePath == null) {
+            openUrl(release.html_url)
+            dismissUpdate()
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _isDownloading.value = true
+            try {
+                val apkAsset = release.assets.firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
+                val downloadUrl = apkAsset?.browser_download_url ?: release.html_url
+                
+                if (apkAsset != null) {
+                    val data = updateManager.downloadAsset(downloadUrl)
+                    if (data != null) {
+                        val filePath = "$cachePath/update.apk"
+                        saveFile(filePath, data)
+                        withContext(Dispatchers.Main) {
+                            installApk(filePath)
+                            dismissUpdate()
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        openUrl(release.html_url)
+                        dismissUpdate()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _isDownloading.value = false
+            }
+        }
     }
 }

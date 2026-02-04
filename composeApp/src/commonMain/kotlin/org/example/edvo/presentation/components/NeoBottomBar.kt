@@ -85,12 +85,23 @@ fun NeoBottomBar(
                         val targetColor = if (isSelected) NeoPaletteV2.SurfacePrimary else NeoPaletteV2.Functional.TextSecondary
                         val animatedColor by androidx.compose.animation.animateColorAsState(targetColor)
                         
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                            tint = animatedColor,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                tint = animatedColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            if (item.hasBadge) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .align(Alignment.TopEnd)
+                                        .padding(1.dp) // Optional padding
+                                        .background(NeoPaletteV2.Functional.SignalRed, androidx.compose.foundation.shape.CircleShape)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -101,5 +112,6 @@ fun NeoBottomBar(
 data class NavigationItem(
     val id: String,
     val label: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val hasBadge: Boolean = false
 )
