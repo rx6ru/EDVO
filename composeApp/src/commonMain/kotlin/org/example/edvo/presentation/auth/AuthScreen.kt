@@ -19,6 +19,8 @@ import org.example.edvo.presentation.designsystem.*
 import org.jetbrains.compose.resources.painterResource
 import edvo.composeapp.generated.resources.Res
 import edvo.composeapp.generated.resources.edvo_base_logo
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 
 
 @Composable
@@ -27,6 +29,10 @@ fun AuthScreen(
     onUnlockSuccess: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val biometricEnabled by viewModel.biometricEnabled.collectAsState()
+    
+    // Biometric authenticator for actual fingerprint prompt
+    val biometricAuthenticator = remember { BiometricAuthenticator() }
     
     LaunchedEffect(state) {
         if (state is AuthState.Unlocked) {
@@ -106,7 +112,16 @@ fun AuthScreen(
                     is AuthState.SetupRequired -> SetupView(viewModel, isCompactMode)
                     is AuthState.Locked -> LockedView(
                         onUnlock = { pwd -> viewModel.login(pwd) },
-                        isCompact = isCompactMode
+                        isCompact = isCompactMode,
+                        biometricEnabled = biometricEnabled,
+                        onBiometricClick = {
+                            // Trigger actual biometric prompt
+                            biometricAuthenticator.authenticate(
+                                onSuccess = { viewModel.unlockWithBiometric() },
+                                onError = { /* Show error toast or snackbar */ },
+                                onCancel = { /* User cancelled, do nothing */ }
+                            )
+                        }
                     )
                     is AuthState.Error -> {
                         Text(
@@ -152,21 +167,19 @@ private fun SetupView(viewModel: AuthViewModel, isCompact: Boolean) {
         Text("This password encrypts all your data.", style = NeoTypographyV2.DataMono())
         Spacer(modifier = Modifier.height(24.dp))
 
-        NeoInput(
+        NeoPasswordInput(
             value = password,
             onValueChange = { password = it; errorText = null },
             label = "Master Password",
-            visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { if (it.isFocused) focusedField = FocusedField.MASTER }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        NeoInput(
+        NeoPasswordInput(
             value = confirmPassword,
             onValueChange = { confirmPassword = it; errorText = null },
             label = "Confirm Password",
-            visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { if (it.isFocused) focusedField = FocusedField.CONFIRM }
@@ -197,7 +210,9 @@ private fun SetupView(viewModel: AuthViewModel, isCompact: Boolean) {
 @Composable
 private fun LockedView(
     onUnlock: (String) -> Unit,
-    isCompact: Boolean
+    isCompact: Boolean,
+    biometricEnabled: Boolean = false,
+    onBiometricClick: () -> Unit = {}
 ) {
     var password by remember { mutableStateOf("") }
     
@@ -211,13 +226,34 @@ private fun LockedView(
         Text("Welcome Back", style = NeoTypographyV2.Header())
         Spacer(modifier = Modifier.height(if (isCompact) 16.dp else 32.dp))
         
-        NeoInput(
-            value = password,
-            onValueChange = { password = it },
-            label = "Master Password",
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
+        // Password field with optional fingerprint button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            NeoPasswordInput(
+                value = password,
+                onValueChange = { password = it },
+                label = "Master Password",
+                modifier = Modifier.weight(1f)
+            )
+            
+            // Fingerprint button (visible when biometric is enabled)
+            if (biometricEnabled) {
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = onBiometricClick,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Fingerprint,
+                        contentDescription = "Unlock with fingerprint",
+                        tint = NeoPaletteV2.Functional.SignalGreen,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+        }
         
         Spacer(modifier = Modifier.height(buttonSpacing))
         

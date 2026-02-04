@@ -23,6 +23,7 @@ import org.example.edvo.presentation.designsystem.NeoSuccessOverlay
 import org.example.edvo.presentation.designsystem.NeoFeedbackOverlay
 import org.example.edvo.presentation.designsystem.FeedbackType
 import org.example.edvo.presentation.designsystem.NeoPaletteV2
+import org.example.edvo.presentation.designsystem.NeoPasswordInput
 import org.example.edvo.presentation.components.util.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,8 +52,14 @@ fun SettingsScreen(
     val screenshotsEnabled by viewModel.screenshotsEnabled.collectAsState()
     val copyPasteEnabled by viewModel.copyPasteEnabled.collectAsState()
     
-    val exportLauncher = io.github.vinceglb.filekit.compose.rememberFileSaverLauncher { 
+    val exportLauncher = io.github.vinceglb.filekit.compose.rememberFileSaverLauncher { result -> 
         viewModel.clearExportData()
+        result?.let {
+            viewModel.onExportSuccess()
+        } ?: run {
+            // User cancelled the file picker, reset loading state
+            viewModel.resetState()
+        }
     }
     
     LaunchedEffect(exportData) {
@@ -146,12 +153,10 @@ fun SettingsScreen(
                 Column {
                     Text(if (isExportMode) "Set encryption password." else "Enter decryption password.")
                     Spacer(modifier = Modifier.height(16.dp))
-                    EdvoTextField(
+                    NeoPasswordInput(
                         value = password,
                         onValueChange = { password = it },
                         label = "Backup Password",
-                        visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

@@ -103,6 +103,7 @@ fun AuthenticatedContent(
 
     val copyPasteEnabled by settingsViewModel.copyPasteEnabled.collectAsState()
     val shakeToLockEnabled by settingsViewModel.shakeToLockEnabled.collectAsState()
+    val shakeToKillEnabled by settingsViewModel.shakeToKillEnabled.collectAsState()
     val shakeConfig by settingsViewModel.shakeConfig.collectAsState()
     
     // Sync shake config to DI so ShakeDetector can access it
@@ -113,18 +114,26 @@ fun AuthenticatedContent(
         if (shakeToLockEnabled) {
             DependencyInjection.shakeDetector?.stopListening()
             DependencyInjection.shakeDetector?.startListening {
-                onLogout()
+                if (shakeToKillEnabled) {
+                    killApp()
+                } else {
+                    onLogout()
+                }
             }
         }
     }
     
-    // Shake to Lock Integration
-    LaunchedEffect(shakeToLockEnabled) {
+    // Shake to Lock Integration (also handles Shake to Kill based on setting)
+    LaunchedEffect(shakeToLockEnabled, shakeToKillEnabled) {
         val detector = DependencyInjection.shakeDetector
         if (shakeToLockEnabled && detector != null) {
             detector.startListening {
-                // Trigger lock on main thread
-                onLogout()
+                // Check if shake-to-kill is enabled
+                if (shakeToKillEnabled) {
+                    killApp() // Force-close the app
+                } else {
+                    onLogout() // Lock (existing behavior)
+                }
             }
         } else {
             detector?.stopListening()

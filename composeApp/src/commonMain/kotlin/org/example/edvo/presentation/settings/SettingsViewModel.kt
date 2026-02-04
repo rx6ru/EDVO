@@ -31,6 +31,8 @@ class SettingsViewModel(
     private val KEY_SCREENSHOTS = "attr_screenshots"
     private val KEY_COPY_PASTE = "attr_copy_paste"
     private val KEY_SHAKE_TO_LOCK = "attr_shake_to_lock"
+    private val KEY_BIOMETRIC_ENABLED = "attr_biometric_enabled"
+    private val KEY_SHAKE_TO_KILL = "attr_shake_to_kill"
     
     // Shake Config Keys
     private val KEY_SHAKE_G_FORCE = "shake_g_force"
@@ -51,6 +53,14 @@ class SettingsViewModel(
     private val _shakeToLockEnabled = MutableStateFlow(false)
     val shakeToLockEnabled = _shakeToLockEnabled.asStateFlow()
     
+    // Biometric Unlock (OFF by default)
+    private val _biometricEnabled = MutableStateFlow(false)
+    val biometricEnabled = _biometricEnabled.asStateFlow()
+    
+    // Shake-to-Kill (OFF by default, distinct from Shake-to-Lock)
+    private val _shakeToKillEnabled = MutableStateFlow(false)
+    val shakeToKillEnabled = _shakeToKillEnabled.asStateFlow()
+    
     // Shake Configuration
     private val _shakeConfig = MutableStateFlow(org.example.edvo.core.sensor.ShakeConfig.Default)
     val shakeConfig = _shakeConfig.asStateFlow()
@@ -65,6 +75,8 @@ class SettingsViewModel(
             _screenshotsEnabled.value = screenshotsIdx
             _copyPasteEnabled.value = copyPasteIdx
             _shakeToLockEnabled.value = shakeToLockIdx
+            _biometricEnabled.value = authRepository.getFeatureFlag(KEY_BIOMETRIC_ENABLED, false)
+            _shakeToKillEnabled.value = authRepository.getFeatureFlag(KEY_SHAKE_TO_KILL, false)
             
             // Load shake config
             loadShakeConfig()
@@ -143,6 +155,61 @@ class SettingsViewModel(
             _shakeToLockEnabled.value = enabled
         }
     }
+    
+    /**
+     * Enable biometric unlock with password verification.
+     * Verifies the password first, then enables the flag.
+     * The actual key storage happens via BiometricKeyManager on Android (called from platform layer).
+     */
+    /**
+     * Verifies the password without enabling biometric yet.
+     * Call enableBiometricUnlock() after successful verification + enrollment.
+     */
+    fun verifyPassword(
+        password: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                // Re-using login check logic from repository
+                val isValid = authRepository.login(password)
+                if (isValid) {
+                    onSuccess()
+                } else {
+                    onError("Incorrect password")
+                }
+            } catch (e: Exception) {
+                onError(e.message ?: "Verification failed")
+            }
+        }
+    }
+    
+    fun enableBiometricUnlock() {
+        viewModelScope.launch {
+            authRepository.setFeatureFlag(KEY_BIOMETRIC_ENABLED, true)
+            _biometricEnabled.value = true
+        }
+    }
+    
+    fun disableBiometricUnlock() {
+        viewModelScope.launch {
+            authRepository.setFeatureFlag(KEY_BIOMETRIC_ENABLED, false)
+            _biometricEnabled.value = false
+            // Note: BiometricKeyManager.clearBiometricData() should be called from UI/Android layer
+        }
+    }
+    
+    /**
+     * Toggle shake-to-kill behavior.
+     * When enabled, shake force-closes the app instead of locking.
+     */
+    fun toggleShakeToKill(enabled: Boolean) {
+        viewModelScope.launch {
+            authRepository.setFeatureFlag(KEY_SHAKE_TO_KILL, enabled)
+            _shakeToKillEnabled.value = enabled
+        }
+    }
 
     fun changePassword(old: String, new: String) {
         viewModelScope.launch {
@@ -169,11 +236,15 @@ class SettingsViewModel(
             try {
                 val backupBytes = authRepository.exportBackup(password)
                 _exportData.value = backupBytes
-                _state.value = SettingsState.Success("Backup Exported Successfully", OperationType.BACKUP_EXPORT)
+                // Success state is now triggered via onExportSuccess() after file save callback
             } catch (e: Exception) {
                 _state.value = SettingsState.Error("Export failed: ${e.message}")
             }
         }
+    }
+    
+    fun onExportSuccess() {
+        _state.value = SettingsState.Success("Backup Exported Successfully", OperationType.BACKUP_EXPORT)
     }
     
     fun clearExportData() {

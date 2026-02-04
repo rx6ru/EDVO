@@ -21,9 +21,24 @@ class AuthViewModel(
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Loading)
     val state = _state.asStateFlow()
+    
+    // Biometric unlock flag
+    private val _biometricEnabled = MutableStateFlow(false)
+    val biometricEnabled = _biometricEnabled.asStateFlow()
 
+    companion object {
+        private const val KEY_BIOMETRIC_ENABLED = "attr_biometric_enabled"  // Must match SettingsViewModel
+    }
+    
     init {
         checkRegistration()
+        loadBiometricFlag()
+    }
+    
+    private fun loadBiometricFlag() {
+        viewModelScope.launch {
+            _biometricEnabled.value = authRepository.getFeatureFlag(KEY_BIOMETRIC_ENABLED, false)
+        }
     }
 
     private fun checkRegistration() {
@@ -78,5 +93,15 @@ class AuthViewModel(
              val isRegistered = authRepository.isUserRegistered()
              _state.value = if (isRegistered) AuthState.Locked else AuthState.SetupRequired
          }
+    }
+    
+    /**
+     * Called after successful biometric authentication.
+     * Unlocks the vault without password input.
+     */
+    fun unlockWithBiometric() {
+        viewModelScope.launch {
+            _state.value = AuthState.Unlocked
+        }
     }
 }

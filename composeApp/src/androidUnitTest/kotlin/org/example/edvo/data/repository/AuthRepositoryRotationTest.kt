@@ -1,6 +1,7 @@
 package org.example.edvo.data.repository
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.example.edvo.core.crypto.CryptoManager
 import org.example.edvo.core.session.SessionManager
@@ -14,7 +15,7 @@ class AuthRepositoryRotationTest {
 
     private lateinit var database: EdvoDatabase
     private lateinit var authRepository: AuthRepositoryImpl
-    private lateinit var noteRepository: NoteRepositoryImpl
+    private lateinit var assetRepository: AssetRepositoryImpl
 
     @Before
     fun setUp() {
@@ -22,7 +23,7 @@ class AuthRepositoryRotationTest {
         EdvoDatabase.Schema.create(driver)
         database = EdvoDatabase(driver)
         authRepository = AuthRepositoryImpl(database)
-        noteRepository = NoteRepositoryImpl(database)
+        assetRepository = AssetRepositoryImpl(database)
         SessionManager.clearSession()
     }
 
@@ -39,20 +40,19 @@ class AuthRepositoryRotationTest {
         authRepository.register(oldPassword)
         assertTrue(SessionManager.isSessionActive())
 
-        // 2. Add some encrypted notes
-        // Note: Repository relies on SessionManager having the key, which register() sets.
-        noteRepository.saveNote(null, "Note 1", "Secret Content 1")
-        noteRepository.saveNote(null, "Note 2", "Secret Content 2")
+        // 2. Add some encrypted assets
+        assetRepository.saveAsset(null, "Note 1", "Secret Content 1")
+        assetRepository.saveAsset(null, "Note 2", "Secret Content 2")
         
-        val notesBefore = noteRepository.getNotes().collect { } // Just to verify flow works? No need.
-        // Let's inspect DB directly or use repo to verify they are readable
-        val note1Id = database.noteQueries.selectAll().executeAsList().first().id
-        val detailBefore = noteRepository.getNoteById(note1Id)
+        // Verify assets exist
+        val assetsBefore = assetRepository.getAssets().first()
+        assertTrue(assetsBefore.isNotEmpty())
+        
+        val asset1Id = database.assetQueries.selectAll().executeAsList().first().id
+        val detailBefore = assetRepository.getAssetById(asset1Id)
         assertEquals("Secret Content 1", detailBefore?.content)
 
-        // 3. Clear session (simulate fresh start or strictly needed by changePassword? 
-        // changePassword assumes we know old password, doesn't strictly need active session IF we pass old password, 
-        // BUT CryptoManager usage inside might rely on something? No, it derives from arg.)
+        // 3. Clear session
         SessionManager.clearSession()
 
         // 4. Change Password
@@ -69,8 +69,11 @@ class AuthRepositoryRotationTest {
         assertTrue("Session active after new login", SessionManager.isSessionActive())
 
         // 8. Verify: Data is accessible and correct
-        val detailAfter = noteRepository.getNoteById(note1Id)
-        assertNotNull("Note should exist", detailAfter)
+        val detailAfter = assetRepository.getAssetById(asset1Id)
+        println("DEBUG: detailAfter = $detailAfter")
+        println("DEBUG: content = ${detailAfter?.content}")
+        
+        assertNotNull("Asset should exist", detailAfter)
         assertEquals("Title should match", "Note 1", detailAfter?.title)
         assertEquals("Content should be decryptable with new key", "Secret Content 1", detailAfter?.content)
     }
@@ -79,11 +82,13 @@ class AuthRepositoryRotationTest {
     fun testWipeData() = runBlocking {
         // 1. Register and add data
         authRepository.register("password")
-        noteRepository.saveNote(null, "Note 1", "Content 1")
+        assetRepository.saveAsset(null, "Note 1", "Content 1")
         
         assertTrue(SessionManager.isSessionActive())
         assertTrue(authRepository.isUserRegistered())
-        assertTrue(noteRepository.getNotes().collect { it.isNotEmpty() }.run { true }) // Simplified check
+        
+        val assets = assetRepository.getAssets().first()
+        assertTrue(assets.isNotEmpty())
 
         // 2. Wipe Data
         authRepository.wipeData()
@@ -92,12 +97,9 @@ class AuthRepositoryRotationTest {
         assertFalse("Session should be cleared", SessionManager.isSessionActive())
         assertFalse("User should not be registered", authRepository.isUserRegistered())
         
-        // Check Notes are gone - need to re-init repo or check DB directly?
-        // NoteRepository might need session to read, but list? list reads summary (plaintext title).
-        // Wait, note title is plaintext in DB? Yes.
-        // So checking DB directly is best.
-        val notes = database.noteQueries.selectAll().executeAsList()
-        assertTrue("All notes should be deleted", notes.isEmpty())
+        // Check Assets are gone
+        val remainingAssets = database.assetQueries.selectAll().executeAsList()
+        assertTrue("All assets should be deleted", remainingAssets.isEmpty())
         
         val salt = database.appConfigQueries.selectByKey("master_salt").executeAsOneOrNull()
         assertNull("Salt should be deleted", salt)

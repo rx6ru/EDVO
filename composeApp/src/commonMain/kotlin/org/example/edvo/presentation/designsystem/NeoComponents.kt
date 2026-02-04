@@ -35,6 +35,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 
 val NeoCardShape = CutCornerShape(topEnd = 12.dp, bottomStart = 12.dp)
 
@@ -195,7 +200,8 @@ fun NeoInput(
                              color = if (isFocused) NeoPaletteV2.Functional.SignalGreen else Color.LightGray.copy(alpha = 0.5f),
                              shape = RoundedCornerShape(4.dp)
                         )
-                        .padding(horizontal = 12.dp, vertical = 16.dp),
+                         .height(56.dp)
+                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (leadingIcon != null) {
@@ -217,6 +223,41 @@ fun NeoInput(
             }
         )
     }
+}
+
+@Composable
+fun NeoPasswordInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    onFocusChange: ((Boolean) -> Unit)? = null
+) {
+    var isPasswordVisible by remember { mutableStateOf(false) }
+
+    NeoInput(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        modifier = modifier,
+        isError = isError,
+        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = keyboardOptions.copy(keyboardType = KeyboardType.Password),
+        keyboardActions = keyboardActions,
+        onFocusChange = onFocusChange,
+        trailingIcon = {
+            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                Icon(
+                    imageVector = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                    contentDescription = if (isPasswordVisible) "Hide password" else "Show password",
+                    tint = NeoPaletteV2.Functional.TextSecondary
+                )
+            }
+        }
+    )
 }
 
 @Composable

@@ -5,10 +5,17 @@ import platform.Foundation.NSDateFormatter
 import platform.Foundation.NSLocale
 import platform.Foundation.currentLocale
 import platform.Foundation.dateWithTimeIntervalSince1970
+import kotlin.system.exitProcess
 
 actual fun setScreenProtection(enabled: Boolean) {
     // iOS Screen Protection (often handled in AppDelegate or SwiftUI view modifiers, hard to do from shared function without context).
     // Leaving no-op for now as main app logic is in Swift for that.
+}
+
+actual fun killApp() {
+    // iOS doesn't allow programmatic app termination in the same way
+    // Using exit(0) - note: Apple may reject apps that call exit() in production
+    exitProcess(0)
 }
 
 actual fun formatShortDate(epochMillis: Long): String {

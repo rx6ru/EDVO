@@ -40,6 +40,19 @@ kotlin {
         }
     }
     
+
+    
+    // Suppress 'expect'/'actual' classes beta warning
+    targets.all {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    freeCompilerArgs.add("-Xexpect-actual-classes")
+                }
+            }
+        }
+    }
+    
     jvm()
     
     sourceSets {
@@ -47,10 +60,13 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.sqldelight.android.driver)
+            implementation(libs.androidx.biometric)
+            implementation(libs.androidx.fragment.ktx)
         }
         val androidUnitTest by getting {
             dependencies {
                 implementation(libs.sqldelight.sqlite.driver)
+                implementation(libs.kotlinx.coroutines.test)
             }
         }
         commonMain.dependencies {
@@ -77,6 +93,13 @@ kotlin {
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(libs.sqldelight.sqlite.driver)
         }
+    }
+}
+ 
+tasks.withType<Test> {
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = true
     }
 }
 

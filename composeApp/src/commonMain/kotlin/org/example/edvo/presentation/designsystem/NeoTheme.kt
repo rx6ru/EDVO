@@ -27,6 +27,7 @@ object NeoPaletteV2 {
     object Functional {
         val SignalGreen = Color(0xFF00FF94)
         val SignalRed = Color(0xFFFF3B30)
+        val Warning = Color(0xFFFFAA00)  // Amber/Orange for warnings
         val TextSecondary = Color(0xFF888888)
         val MatrixText = Color(0xFF00FF94)
     }

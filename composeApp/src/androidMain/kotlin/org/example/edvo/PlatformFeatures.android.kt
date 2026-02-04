@@ -3,6 +3,7 @@ package org.example.edvo
 import android.app.Activity
 import android.view.WindowManager
 import java.lang.ref.WeakReference
+import kotlin.system.exitProcess
 
 // Global reference holder - simple hack for static access from Composable context if needed, 
 // though ideal way is passing Activity to App, but 'expect' functions are static.
@@ -28,5 +29,12 @@ actual fun setScreenProtection(enabled: Boolean) {
                 WindowManager.LayoutParams.FLAG_SECURE
             )
         }
+    }
+}
+
+actual fun killApp() {
+    AndroidActivityTracker.currentActivity?.get()?.let { activity ->
+        activity.finishAffinity()
+        exitProcess(0)
     }
 }

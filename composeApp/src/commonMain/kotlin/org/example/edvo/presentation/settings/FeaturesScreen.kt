@@ -16,6 +16,10 @@ import org.example.edvo.presentation.designsystem.NeoPaletteV2
 import org.example.edvo.theme.EdvoColor
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import org.example.edvo.presentation.designsystem.NeoInput
+import org.example.edvo.presentation.designsystem.NeoPasswordInput
+import org.example.edvo.presentation.designsystem.SmartButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +33,17 @@ fun FeaturesScreen(
     val screenshotsEnabled by viewModel.screenshotsEnabled.collectAsState()
     val copyPasteEnabled by viewModel.copyPasteEnabled.collectAsState()
     val shakeToLockEnabled by viewModel.shakeToLockEnabled.collectAsState()
+    val biometricEnabled by viewModel.biometricEnabled.collectAsState()
+    val shakeToKillEnabled by viewModel.shakeToKillEnabled.collectAsState()
+    
+    // Password verification dialog state for biometric enable
+    var showBiometricPasswordDialog by remember { mutableStateOf(false) }
+    var biometricPassword by remember { mutableStateOf("") }
+    var biometricPasswordError by remember { mutableStateOf<String?>(null) }
+    var isVerifyingPassword by remember { mutableStateOf(false) }
+    
+    // Biometric Authenticator for key enrollment/confirmation
+    val biometricAuthenticator = remember { org.example.edvo.presentation.auth.BiometricAuthenticator() }
 
     EdvoScaffold(
         topBar = {
@@ -164,7 +179,162 @@ fun FeaturesScreen(
                 }
             }
             
+            // Shake to Kill Toggle (Nested under Shake to Lock)
+            if (shakeToLockEnabled) {
+                EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Shake to Kill App", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
+                            Text(
+                                if (shakeToKillEnabled) "Force-close on shake" else "Lock on shake (default)", 
+                                style = MaterialTheme.typography.bodySmall, 
+                                color = if (shakeToKillEnabled) NeoPaletteV2.Functional.Warning else EdvoColor.LightGray
+                            )
+                        }
+                        Switch(
+                            checked = shakeToKillEnabled,
+                            onCheckedChange = { viewModel.toggleShakeToKill(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = NeoPaletteV2.Functional.Warning,
+                                uncheckedThumbColor = EdvoColor.LightGray,
+                                uncheckedTrackColor = EdvoColor.Surface,
+                                uncheckedBorderColor = EdvoColor.LightGray
+                            )
+                        )
+                    }
+                }
+            }
+            
+            // Biometric Unlock Toggle
+            EdvoCard(onClick = {}, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Biometric Unlock", style = MaterialTheme.typography.bodyLarge, color = EdvoColor.White)
+                        Text(
+                            if (biometricEnabled) "Fingerprint enabled" else "Disabled", 
+                            style = MaterialTheme.typography.bodySmall, 
+                            color = if (biometricEnabled) NeoPaletteV2.Functional.SignalGreen else EdvoColor.LightGray
+                        )
+                    }
+                    Switch(
+                        checked = biometricEnabled,
+                        onCheckedChange = { enabled ->
+                            if (enabled) {
+                                // Show password verification dialog
+                                showBiometricPasswordDialog = true
+                            } else {
+                                viewModel.disableBiometricUnlock()
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = NeoPaletteV2.Functional.SignalGreen,
+                            uncheckedThumbColor = EdvoColor.LightGray,
+                            uncheckedTrackColor = EdvoColor.Surface,
+                            uncheckedBorderColor = EdvoColor.LightGray
+                        )
+                    )
+                }
+            }
+            
             Spacer(modifier = Modifier.height(88.dp)) // Clear bottom nav
         }
+    }
+    
+    // Password Verification Dialog for Biometric Enable
+    if (showBiometricPasswordDialog) {
+        AlertDialog(
+            containerColor = EdvoColor.DarkSurface,
+            titleContentColor = EdvoColor.White,
+            textContentColor = EdvoColor.LightGray,
+            onDismissRequest = {
+                showBiometricPasswordDialog = false
+                biometricPassword = ""
+                biometricPasswordError = null
+            },
+            title = { Text("Enable Biometric Unlock") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Enter your master password to enable fingerprint unlock.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    NeoPasswordInput(
+                        value = biometricPassword,
+                        onValueChange = { 
+                            biometricPassword = it
+                            biometricPasswordError = null
+                        },
+                        label = "Master Password",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (biometricPasswordError != null) {
+                        Text(
+                            biometricPasswordError!!,
+                            color = NeoPaletteV2.Functional.SignalRed,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                SmartButton(
+                    text = if (isVerifyingPassword) "Verifying..." else "Enable",
+                    onClick = {
+                        isVerifyingPassword = true
+                        viewModel.verifyPassword(
+                            password = biometricPassword,
+                            onSuccess = {
+                                // Password verified. Now prompt for fingerprint to confirm/enroll.
+                                isVerifyingPassword = false
+                                showBiometricPasswordDialog = false
+                                
+                                biometricAuthenticator.authenticate(
+                                    onSuccess = {
+                                        viewModel.enableBiometricUnlock()
+                                        biometricPassword = ""
+                                        biometricPasswordError = null
+                                    },
+                                    onError = { error ->
+                                        // Failed to enroll/confirm biometric
+                                        // Could show a snackbar or re-open dialog
+                                        // For now, reset.
+                                        biometricPassword = ""
+                                        biometricPasswordError = null
+                                    },
+                                    onCancel = {
+                                        biometricPassword = ""
+                                        biometricPasswordError = null
+                                    }
+                                )
+                            },
+                            onError = { error ->
+                                isVerifyingPassword = false
+                                biometricPasswordError = error
+                            }
+                        )
+                    },
+                    modifier = Modifier.width(130.dp)
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showBiometricPasswordDialog = false
+                    biometricPassword = ""
+                    biometricPasswordError = null
+                }) {
+                    Text("Cancel", color = EdvoColor.LightGray)
+                }
+            }
+        )
     }
 }
