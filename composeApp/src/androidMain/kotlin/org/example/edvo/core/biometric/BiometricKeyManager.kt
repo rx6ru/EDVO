@@ -60,17 +60,27 @@ class BiometricKeyManager(private val context: Context) {
     }
 
     /**
-     * Store the master key encrypted with a biometric-protected Keystore key.
-     * Call this when user enables biometric unlock (after password verification).
+     * Get a Cipher configured for encryption, ready for BiometricPrompt.
+     * This allows us to authenticate the user BEFORE encrypting the master key.
      */
-    fun storeMasterKeyForBiometrics(masterKey: ByteArray): Boolean {
+    fun getCryptoObjectForEncryption(): BiometricPrompt.CryptoObject? {
         return try {
-            // Generate or get the Keystore wrapping key
             val secretKey = getOrCreateKeystoreKey()
-            
-            // Encrypt the master key
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+            BiometricPrompt.CryptoObject(cipher)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Encrypt and store the master key using the authenticated Cipher.
+     * Call this inside BiometricPrompt.onAuthenticationSucceeded.
+     */
+    fun encryptMasterKey(cipher: Cipher, masterKey: ByteArray): Boolean {
+        return try {
             val encryptedKey = cipher.doFinal(masterKey)
             val iv = cipher.iv
             
@@ -81,6 +91,23 @@ class BiometricKeyManager(private val context: Context) {
                 .apply()
             
             true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * Legacy/Unsafe storage (only works if key doesn't require auth).
+     * Retained for compatibility but should not be used with AUTH_BIOMETRIC_STRONG.
+     */
+    fun storeMasterKeyForBiometrics(masterKey: ByteArray): Boolean {
+        // Attempt immediate encryption - will fail if auth required
+        return try {
+            val secretKey = getOrCreateKeystoreKey()
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+            encryptMasterKey(cipher, masterKey)
         } catch (e: Exception) {
             e.printStackTrace()
             false

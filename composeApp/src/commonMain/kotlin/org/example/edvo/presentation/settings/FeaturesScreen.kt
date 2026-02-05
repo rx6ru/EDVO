@@ -232,6 +232,7 @@ fun FeaturesScreen(
                                 // Show password verification dialog
                                 showBiometricPasswordDialog = true
                             } else {
+                                biometricAuthenticator.clearCredentials()  // Remove Keystore key + encrypted data
                                 viewModel.disableBiometricUnlock()
                             }
                         },
@@ -294,28 +295,34 @@ fun FeaturesScreen(
                         viewModel.verifyPassword(
                             password = biometricPassword,
                             onSuccess = {
-                                // Password verified. Now prompt for fingerprint to confirm/enroll.
+                                // Password verified. Now store the key and prompt fingerprint to confirm.
                                 isVerifyingPassword = false
                                 showBiometricPasswordDialog = false
                                 
-                                biometricAuthenticator.authenticate(
-                                    onSuccess = {
-                                        viewModel.enableBiometricUnlock()
-                                        biometricPassword = ""
-                                        biometricPasswordError = null
-                                    },
-                                    onError = { error ->
-                                        // Failed to enroll/confirm biometric
-                                        // Could show a snackbar or re-open dialog
-                                        // For now, reset.
-                                        biometricPassword = ""
-                                        biometricPasswordError = null
-                                    },
-                                    onCancel = {
-                                        biometricPassword = ""
-                                        biometricPasswordError = null
-                                    }
-                                )
+                                // Store the master key (session is active from password verification)
+                                val masterKey = org.example.edvo.core.session.SessionManager.getMasterKey()
+                                if (masterKey != null) {
+                                    // Prompt user to Confirm with Fingerprint + Encrypt Key
+                                    biometricAuthenticator.enableBiometric(
+                                        masterKey = masterKey,
+                                        onSuccess = {
+                                            viewModel.enableBiometricUnlock()
+                                            biometricPassword = ""
+                                            biometricPasswordError = null
+                                        },
+                                        onError = { error ->
+                                            biometricPasswordError = error
+                                        },
+                                        onCancel = {
+                                            biometricPassword = ""
+                                            biometricPasswordError = null
+                                        }
+                                    )
+                                } else {
+                                    // No session active - shouldn't happen after password verify
+                                    biometricPassword = ""
+                                    biometricPasswordError = null
+                                }
                             },
                             onError = { error ->
                                 isVerifyingPassword = false

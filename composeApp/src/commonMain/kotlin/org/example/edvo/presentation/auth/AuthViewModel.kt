@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.example.edvo.core.session.SessionManager
 import org.example.edvo.domain.repository.AuthRepository
 
 sealed class AuthState {
@@ -74,12 +75,17 @@ class AuthViewModel(
             try {
                 val success = authRepository.login(password)
                 if (success) {
+                    // If biometric is enabled, store the master key for future biometric unlock
+                    if (_biometricEnabled.value) {
+                        val masterKey = SessionManager.getMasterKey()
+                        if (masterKey != null) {
+                            val biometricAuthenticator = BiometricAuthenticator()
+                            biometricAuthenticator.storeMasterKey(masterKey)
+                        }
+                    }
                     _state.value = AuthState.Unlocked
                 } else {
                     _state.value = AuthState.Error("Invalid Password")
-                    // Reset to Locked state after error to show UI again? 
-                    // Or keep Error state and let UI handle "Try Again". 
-                    // Better: UI observes Error and user can type again.
                 }
             } catch (e: Exception) {
                 _state.value = AuthState.Error("Login failed: ${e.message}")
@@ -96,12 +102,26 @@ class AuthViewModel(
     }
     
     /**
-     * Called after successful biometric authentication.
-     * Unlocks the vault without password input.
+     * Called after successful biometric authentication with the decrypted master key.
+     * Starts the session and unlocks the vault.
      */
-    fun unlockWithBiometric() {
+    fun unlockWithBiometric(masterKey: ByteArray) {
         viewModelScope.launch {
-            _state.value = AuthState.Unlocked
+            try {
+                // Start the session with the decrypted master key
+                SessionManager.startSession(masterKey)
+                _state.value = AuthState.Unlocked
+            } catch (e: Exception) {
+                _state.value = AuthState.Error("Biometric unlock failed: ${e.message}")
+            }
         }
     }
+    
+    /**
+     * Show biometric error to user.
+     */
+    fun showBiometricError(message: String) {
+        _state.value = AuthState.Error(message)
+    }
 }
+

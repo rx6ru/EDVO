@@ -115,10 +115,10 @@ fun AuthScreen(
                         isCompact = isCompactMode,
                         biometricEnabled = biometricEnabled,
                         onBiometricClick = {
-                            // Trigger actual biometric prompt
-                            biometricAuthenticator.authenticate(
-                                onSuccess = { viewModel.unlockWithBiometric() },
-                                onError = { /* Show error toast or snackbar */ },
+                            // Use secure authentication with Keystore-backed key retrieval
+                            biometricAuthenticator.authenticateSecure(
+                                onSuccess = { masterKey -> viewModel.unlockWithBiometric(masterKey) },
+                                onError = { message -> viewModel.showBiometricError(message) },
                                 onCancel = { /* User cancelled, do nothing */ }
                             )
                         }
